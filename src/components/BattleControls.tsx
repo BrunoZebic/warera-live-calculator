@@ -50,7 +50,7 @@ export function BattleControls({
         <span>Future action timing: {hoursAhead}h</span>
         <input
           className="range-input"
-          max="24"
+          max="10"
           min="0"
           onChange={(event) => onHoursAheadChange(Number(event.target.value))}
           step="1"

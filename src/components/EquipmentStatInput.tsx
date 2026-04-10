@@ -96,57 +96,56 @@ export function EquipmentStatInput({
   return (
     <form className="equipment-stat-inputs" onSubmit={handleSubmit}>
       {meta.statRanges.map((range) => (
-        <div className="equipment-stat-field" key={range.key}>
-          <span className="equipment-stat-label">{STAT_LABELS[range.key]}</span>
+        <div className="equipment-stat-control" key={range.key}>
+          <input
+            aria-label={`${range.key} value`}
+            className={`equipment-stat-input ${invalidKeys.includes(range.key) ? 'equipment-stat-input-invalid' : ''}`}
+            onChange={(event) => {
+              const rawValue = event.target.value
+              const parsed = Number(rawValue)
+              const nextValue =
+                rawValue === ''
+                  ? ''
+                  : Number.isFinite(parsed)
+                    ? String(clampToRange(parsed, range.min, range.max))
+                    : rawValue
 
-          <div className="equipment-stat-control">
-            <input
-              aria-label={`${range.key} value`}
-              className={`equipment-stat-input ${invalidKeys.includes(range.key) ? 'equipment-stat-input-invalid' : ''}`}
-              onChange={(event) => {
-                const rawValue = event.target.value
-                const parsed = Number(rawValue)
-                const nextValue =
-                  rawValue === ''
-                    ? ''
-                    : Number.isFinite(parsed)
-                      ? String(clampToRange(parsed, range.min, range.max))
-                      : rawValue
+              setDraftValues((current) => ({
+                ...current,
+                [range.key]: nextValue,
+              }))
+              setInvalidKeys((current) =>
+                current.filter((entry) => entry !== range.key),
+              )
+            }}
+            max={range.max}
+            min={range.min}
+            placeholder={STAT_LABELS[range.key]}
+            step="1"
+            title={`${range.key}: ${range.min}-${range.max}`}
+            type="number"
+            value={draftValues[range.key] ?? ''}
+          />
 
-                setDraftValues((current) => ({
-                  ...current,
-                  [range.key]: nextValue,
-                }))
-                setInvalidKeys((current) =>
-                  current.filter((entry) => entry !== range.key),
-                )
-              }}
-              max={range.max}
-              min={range.min}
-              step="1"
-              title={`${range.key}: ${range.min}-${range.max}`}
-              type="number"
-              value={draftValues[range.key] ?? ''}
-            />
-
-            <div className="equipment-stepper" aria-hidden="true">
-              <button
-                className="equipment-step-btn"
-                onClick={() => adjustDraftValue(range, 1)}
-                tabIndex={-1}
-                type="button"
-              >
-                +
-              </button>
-              <button
-                className="equipment-step-btn"
-                onClick={() => adjustDraftValue(range, -1)}
-                tabIndex={-1}
-                type="button"
-              >
-                -
-              </button>
-            </div>
+          <div className="equipment-stepper" aria-hidden="true">
+            <button
+              className="equipment-step-btn"
+              onClick={() => adjustDraftValue(range, 1)}
+              tabIndex={-1}
+              title={`Increase ${range.key}`}
+              type="button"
+            >
+              +
+            </button>
+            <button
+              className="equipment-step-btn"
+              onClick={() => adjustDraftValue(range, -1)}
+              tabIndex={-1}
+              title={`Decrease ${range.key}`}
+              type="button"
+            >
+              -
+            </button>
           </div>
         </div>
       ))}

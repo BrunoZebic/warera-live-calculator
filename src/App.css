@@ -329,10 +329,12 @@
   padding: 12px;
   display: grid;
   place-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: default;
   position: relative;
   text-align: center;
+  height: 100%;
+  align-content: center;
 }
 
 .equipment-icon {
@@ -417,6 +419,12 @@
 
 .equipment-pill-wrapper {
   position: relative;
+  min-height: 92px;
+}
+
+.equipment-pill-wrapper > .equipment-pill {
+  width: 100%;
+  min-height: 92px;
 }
 
 .equipment-pill-edit-btn {
@@ -498,57 +506,29 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 6px;
-  border: 1px solid rgba(255, 56, 56, 0.14);
-  border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(29, 10, 12, 0.7), rgba(12, 7, 8, 0.88)),
-    #0d0d0f;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.24);
-}
-
-.equipment-stat-field {
-  display: grid;
   gap: 4px;
-  justify-items: center;
-}
-
-.equipment-stat-label {
-  color: rgba(255, 181, 181, 0.72);
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  width: 100%;
 }
 
 .equipment-stat-control {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 22px;
+  grid-template-columns: minmax(0, 1fr) 16px;
   align-items: stretch;
-  gap: 4px;
+  gap: 3px;
 }
 
 .equipment-stat-input {
-  width: 54px;
-  min-height: 32px;
-  padding: 0 8px;
-  border: 1px solid rgba(255, 86, 86, 0.18);
+  width: 38px;
+  min-height: 24px;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(27, 9, 11, 0.96), rgba(14, 7, 8, 0.96)),
-    #0a0a0b;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
   text-align: center;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 6px 12px rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease,
@@ -558,23 +538,20 @@
 }
 
 .equipment-stat-input:hover {
-  border-color: rgba(255, 86, 86, 0.34);
-  background:
-    linear-gradient(180deg, rgba(34, 10, 13, 0.98), rgba(17, 7, 9, 0.98)),
-    #0a0a0b;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .equipment-stat-input:focus {
   outline: none;
   border-color: rgba(255, 56, 56, 0.75);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 0 0 3px rgba(255, 56, 56, 0.16),
-    0 10px 18px rgba(0, 0, 0, 0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 3px rgba(255, 56, 56, 0.14);
 }
 
 .equipment-stat-input::placeholder {
-  color: rgba(255, 177, 177, 0.48);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .equipment-stat-input::-webkit-outer-spin-button,
@@ -593,41 +570,33 @@
 .equipment-stepper {
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: 3px;
+  gap: 2px;
 }
 
 .equipment-step-btn {
-  width: 22px;
-  min-height: 14px;
+  width: 16px;
+  min-height: 11px;
   padding: 0;
-  border: 1px solid rgba(255, 86, 86, 0.18);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(38, 10, 13, 0.98), rgba(17, 7, 9, 0.98)),
-    #0a0a0b;
-  color: #ffc2c2;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
   cursor: pointer;
-  font-size: 0.68rem;
+  font-size: 0.55rem;
   font-weight: 900;
   line-height: 1;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 6px 10px rgba(0, 0, 0, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition:
     border-color 150ms ease,
     background 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease;
+    color 150ms ease;
 }
 
 .equipment-step-btn:hover,
 .equipment-step-btn:focus-visible {
   outline: none;
-  border-color: rgba(255, 86, 86, 0.4);
-  background:
-    linear-gradient(180deg, rgba(52, 12, 16, 0.98), rgba(22, 8, 10, 0.98)),
-    #0a0a0b;
-  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .add-row-btn {

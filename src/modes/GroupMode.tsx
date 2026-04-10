@@ -112,6 +112,15 @@ export function GroupMode({ config }: GroupModeProps) {
                   ),
                 )
               }
+              onEquipmentRowsChange={(equipmentRows) =>
+                setPlayers((current) =>
+                  current.map((entry) =>
+                    entry.key === selection.key
+                      ? { ...entry, equipmentRows }
+                      : entry,
+                  ),
+                )
+              }
               onFoodChange={(foodType: FoodType) =>
                 setPlayers((current) =>
                   current.map((entry) =>

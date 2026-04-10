@@ -1,4 +1,4 @@
-import { buildCalcInput, calculateGroupProjection } from '../damage/formula'
+import { calculateSelectionProjection } from '../damage/liveProjection'
 import { projectFutureBars } from '../damage/projection'
 import {
   formatCompactNumber,
@@ -21,30 +21,27 @@ export function GroupSummary({
   hoursAhead,
   players,
 }: GroupSummaryProps) {
-  const currentInputs = players.map((selection) =>
-    buildCalcInput(
-      selection,
+  const currentPlayerProjections = players.map((selection) =>
+    calculateSelectionProjection({
       battleBonusPct,
-      getFoodRestorePct(selection.foodType, config),
-      getSelectedPillAttackPct(selection, config),
-    ),
+      config,
+      foodRestorePct: getFoodRestorePct(selection.foodType, config),
+      pillAttackBonusPct: getSelectedPillAttackPct(selection, config),
+      selection,
+    }).projection,
   )
-  const futureInputs = players.map((selection) => {
-    const input = buildCalcInput(
-      selection,
+  const futurePlayerProjections = players.map((selection) =>
+    calculateSelectionProjection({
       battleBonusPct,
-      getFoodRestorePct(selection.foodType, config),
-      getSelectedPillAttackPct(selection, config),
-    )
-
-    return {
-      ...input,
-      ...projectFutureBars(selection.snapshot, hoursAhead, config),
-    }
-  })
-
-  const nowProjection = calculateGroupProjection(currentInputs)
-  const futureProjection = calculateGroupProjection(futureInputs)
+      barsOverride: projectFutureBars(selection.snapshot, hoursAhead, config),
+      config,
+      foodRestorePct: getFoodRestorePct(selection.foodType, config),
+      pillAttackBonusPct: getSelectedPillAttackPct(selection, config),
+      selection,
+    }).projection,
+  )
+  const nowProjection = summarizeGroupProjection(currentPlayerProjections)
+  const futureProjection = summarizeGroupProjection(futurePlayerProjections)
   const showFutureAsPrimary = hoursAhead > 0
   const primaryProjection = showFutureAsPrimary
     ? futureProjection
@@ -64,14 +61,14 @@ export function GroupSummary({
           </span>
           <strong>{formatCompactNumber(primaryProjection.totalDamage)}</strong>
           <small>
-            {primaryProjection.totalAttempts}{' '}
+            {formatPreciseNumber(primaryProjection.totalAttempts)}{' '}
             {showFutureAsPrimary ? 'projected' : 'estimated'} attempts
           </small>
           <div className="damage-hero-meta">
             {showFutureAsPrimary ? (
               <>
                 <span>Now: {formatCompactNumber(nowProjection.totalDamage)}</span>
-                <span>{nowProjection.totalAttempts} attempts now</span>
+                <span>{formatPreciseNumber(nowProjection.totalAttempts)} attempts now</span>
               </>
             ) : (
               <>
@@ -94,7 +91,7 @@ export function GroupSummary({
             </strong>
             <small>
               {showFutureAsPrimary
-                ? `${nowProjection.totalAttempts} estimated attempts`
+                ? `${formatPreciseNumber(nowProjection.totalAttempts)} estimated attempts`
                 : `Average projected damage ${formatPreciseNumber(futureProjection.averageDamage)}`}
             </small>
           </div>
@@ -109,11 +106,31 @@ export function GroupSummary({
             <small>
               {showFutureAsPrimary
                 ? `Average projected damage ${formatPreciseNumber(futureProjection.averageDamage)}`
-                : `${futureProjection.totalAttempts} projected attempts`}
+                : `${formatPreciseNumber(futureProjection.totalAttempts)} projected attempts`}
             </small>
           </div>
         </div>
       </div>
     </section>
   )
+}
+
+function summarizeGroupProjection(
+  projections: Array<{ estimatedAttempts: number; totalDamage: number }>,
+) {
+  const totalDamage = projections.reduce(
+    (sum, projection) => sum + projection.totalDamage,
+    0,
+  )
+  const totalAttempts = projections.reduce(
+    (sum, projection) => sum + projection.estimatedAttempts,
+    0,
+  )
+
+  return {
+    totalDamage,
+    totalAttempts,
+    playerCount: projections.length,
+    averageDamage: projections.length > 0 ? totalDamage / projections.length : 0,
+  }
 }

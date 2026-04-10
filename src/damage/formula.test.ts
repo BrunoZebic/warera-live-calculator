@@ -14,6 +14,22 @@ const runtimeConfig: RuntimeConfig = {
   },
   pillAttackBonusPct: 60,
   itemMetaByCode: {},
+  equipmentMetaBySlot: {
+    weapon: [],
+    helmet: [],
+    chest: [],
+    pants: [],
+    boots: [],
+    gloves: [],
+  },
+  combatRules: {
+    armorSoftCap: 40,
+    dodgeSoftCap: 40,
+    precisionOverflowTarget: 'attack',
+    precisionOverflowValue: 4,
+    criticalChanceOverflowTarget: 'criticalDamages',
+    criticalChanceOverflowValue: 4,
+  },
   defaultBars: {
     maxHealth: 100,
     maxHunger: 4,

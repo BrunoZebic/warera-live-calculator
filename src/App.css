@@ -331,6 +331,8 @@
   place-items: center;
   gap: 8px;
   cursor: default;
+  position: relative;
+  text-align: center;
 }
 
 .equipment-icon {
@@ -387,6 +389,155 @@
   color: #c4c4c8;
   border-color: rgba(142, 142, 148, 0.34);
   background: linear-gradient(180deg, rgba(64, 64, 69, 0.28), rgba(23, 23, 25, 0.94));
+}
+
+.equipment-grid-shell,
+.equipment-row {
+  display: grid;
+  gap: 10px;
+}
+
+.equipment-grid-note,
+.equipment-row-label {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.equipment-row-grid {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.equipment-row-grid > * {
+  flex: 1 0 120px;
+  min-width: 120px;
+}
+
+.equipment-pill-wrapper {
+  position: relative;
+}
+
+.equipment-pill-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(7, 7, 8, 0.58);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.equipment-pill-edit-btn:hover,
+.equipment-pill-edit-btn:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(7, 7, 8, 0.78);
+}
+
+.equipment-pill-empty {
+  width: 100%;
+  border-style: dashed;
+  color: #c9c9ce;
+  cursor: pointer;
+}
+
+.equipment-pill-empty:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.equipment-rarity-picker {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #311013;
+  border-radius: 12px;
+  background: rgba(15, 15, 17, 0.98);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
+  z-index: 8;
+}
+
+.equipment-rarity-picker-item {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.equipment-rarity-picker-item .equipment-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.equipment-rarity-picker-item .equipment-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.equipment-stat-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.equipment-stat-input {
+  width: 48px;
+  min-height: 28px;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(9, 9, 10, 0.76);
+  color: #ffffff;
+  text-align: center;
+  font-size: 0.72rem;
+}
+
+.equipment-stat-input:focus {
+  outline: none;
+  border-color: rgba(255, 56, 56, 0.75);
+}
+
+.equipment-stat-input-invalid {
+  border-color: rgba(255, 93, 93, 0.92);
+  box-shadow: 0 0 0 2px rgba(255, 56, 56, 0.15);
+}
+
+.add-row-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px dashed rgba(255, 56, 56, 0.32);
+  border-radius: 10px;
+  background: #120507;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.add-row-btn:hover,
+.add-row-btn:focus-visible {
+  outline: none;
+  border-color: rgba(255, 56, 56, 0.72);
+  color: #ffffff;
 }
 
 .picker-grid {

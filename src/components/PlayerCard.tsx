@@ -1,6 +1,11 @@
+import { calculateSelectionProjection } from '../damage/liveProjection'
+import { EquipmentGrid } from './EquipmentGrid'
 import { ProjectionSummary } from './ProjectionSummary'
-import { EquipmentIcon } from './EquipmentIcon'
-import { getItemRarity } from '../lib/players'
+import {
+  getFoodRestorePct,
+  getSelectedPillAttackPct,
+} from '../lib/players'
+import { snapshotToEquipmentRows } from '../lib/equipmentRows'
 import type { AmmoType, FoodType, PlayerSelection, RuntimeConfig } from '../types'
 
 interface PlayerCardProps {
@@ -8,6 +13,7 @@ interface PlayerCardProps {
   config: RuntimeConfig
   hoursAhead: number
   onAmmoChange: (ammoType: AmmoType) => void
+  onEquipmentRowsChange: (rows: NonNullable<PlayerSelection['equipmentRows']>) => void
   onFoodChange: (foodType: FoodType) => void
   onPillChange: (pillActive: boolean) => void
   onRemove?: () => void
@@ -19,6 +25,7 @@ export function PlayerCard({
   config,
   hoursAhead,
   onAmmoChange,
+  onEquipmentRowsChange,
   onFoodChange,
   onPillChange,
   onRemove,
@@ -29,6 +36,16 @@ export function PlayerCard({
   }
 
   const snapshot = selection.snapshot
+  const foodRestorePct = getFoodRestorePct(selection.foodType, config)
+  const selectedPillAttackPct = getSelectedPillAttackPct(selection, config)
+  const preview = calculateSelectionProjection({
+    battleBonusPct,
+    config,
+    foodRestorePct,
+    pillAttackBonusPct: selectedPillAttackPct,
+    selection,
+  })
+  const equipmentRows = selection.equipmentRows ?? snapshotToEquipmentRows(snapshot)
 
   return (
     <article className="panel player-card">
@@ -58,36 +75,34 @@ export function PlayerCard({
       </div>
 
       <div className="stat-chip-row">
-        <span className="stat-chip">Attack {snapshot.attackTotal.toFixed(1)}</span>
-        <span className="stat-chip">Precision {snapshot.precisionPct.toFixed(1)}%</span>
         <span className="stat-chip">
-          Crit {snapshot.criticalChancePct.toFixed(1)}%
+          Attack {preview.openingProjection.attackWithSelectedModifiers.toFixed(1)}
         </span>
         <span className="stat-chip">
-          Pill {selection.pillActive ? `+${snapshot.detectedPillAttackPct || config.pillAttackBonusPct}%` : 'off'}
+          Precision {preview.openingInput.precisionPct.toFixed(1)}%
         </span>
         <span className="stat-chip">
-          Crit dmg {snapshot.critDamagePct.toFixed(1)}%
+          Crit {preview.openingInput.criticalChancePct.toFixed(1)}%
         </span>
-        <span className="stat-chip">Armor {snapshot.armorPct.toFixed(1)}%</span>
-        <span className="stat-chip">Dodge {snapshot.dodgePct.toFixed(1)}%</span>
+        <span className="stat-chip">
+          Pill {selection.pillActive ? `+${selectedPillAttackPct}%` : 'off'}
+        </span>
+        <span className="stat-chip">
+          Crit dmg {preview.openingInput.critDamagePct.toFixed(1)}%
+        </span>
+        <span className="stat-chip">
+          Armor {preview.openingInput.armorPct.toFixed(1)}%
+        </span>
+        <span className="stat-chip">
+          Dodge {preview.openingInput.dodgePct.toFixed(1)}%
+        </span>
       </div>
 
-      <div className="equipment-grid">
-        {snapshot.equipment.map((item) => (
-          <div
-            className={`equipment-pill equipment-pill-rarity-${getItemRarity(item.code, config)}`}
-            key={`${snapshot.id}-${item.slot}`}
-            title={`${item.slot} (${item.state}/${item.maxState})`}
-          >
-            <EquipmentIcon slot={item.slot} />
-            <strong>{item.slot}</strong>
-            <small>
-              {item.state}/{item.maxState}
-            </small>
-          </div>
-        ))}
-      </div>
+      <EquipmentGrid
+        config={config}
+        onRowsChange={onEquipmentRowsChange}
+        rows={equipmentRows}
+      />
 
       <ProjectionSummary
         battleBonusPct={battleBonusPct}

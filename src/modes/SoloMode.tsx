@@ -51,6 +51,7 @@ export function SoloMode({ config }: SoloModeProps) {
             ...nextSelection,
             ammoType: current.ammoType,
             foodType: current.foodType,
+            pillActive: current.pillActive,
           }
         }
 
@@ -102,6 +103,11 @@ export function SoloMode({ config }: SoloModeProps) {
               onAmmoChange={(ammoType: AmmoType) =>
                 setLiveSelection((current) =>
                   current ? { ...current, ammoType } : current,
+                )
+              }
+              onEquipmentRowsChange={(equipmentRows) =>
+                setLiveSelection((current) =>
+                  current ? { ...current, equipmentRows } : current,
                 )
               }
               onFoodChange={(foodType: FoodType) =>

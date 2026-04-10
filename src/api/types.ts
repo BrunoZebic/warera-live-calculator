@@ -5,6 +5,12 @@ export interface WareraBarSkill {
 }
 
 export interface WareraComputedStat {
+  level?: number
+  value?: number | null
+  weapon?: number | null
+  equipment?: number | null
+  overflow?: number | null
+  limited?: number | null
   total: number
   totalAfterSoftCap?: number | null
 }
@@ -38,7 +44,12 @@ export interface WareraUserByIdResponse {
 export interface WareraEquipmentItem {
   code: string
   maxState: number
-  skills?: Record<string, number>
+  skills?: Partial<
+    Record<
+      'attack' | 'criticalChance' | 'armor' | 'dodge' | 'precision' | 'criticalDamages',
+      number
+    >
+  >
   state: number
 }
 

@@ -3,10 +3,7 @@ import {
   FOOD_LABELS,
   MINIMUM_BATTLE_HEALTH,
 } from '../damage/constants'
-import {
-  buildCalcInput,
-  calculatePlayerProjection,
-} from '../damage/formula'
+import { calculateSelectionProjection } from '../damage/liveProjection'
 import { projectFutureBars } from '../damage/projection'
 import {
   formatCompactNumber,
@@ -42,19 +39,25 @@ export function ProjectionSummary({
 }: ProjectionSummaryProps) {
   const foodRestorePct = getFoodRestorePct(selection.foodType, config)
   const selectedPillAttackPct = getSelectedPillAttackPct(selection, config)
-  const currentInput = buildCalcInput(
-    selection,
+  const currentResult = calculateSelectionProjection({
     battleBonusPct,
+    config,
     foodRestorePct,
-    selectedPillAttackPct,
-  )
+    pillAttackBonusPct: selectedPillAttackPct,
+    selection,
+  })
   const futureBars = projectFutureBars(selection.snapshot, hoursAhead, config)
-  const futureInput = {
-    ...currentInput,
-    ...futureBars,
-  }
-  const currentProjection = calculatePlayerProjection(currentInput)
-  const futureProjection = calculatePlayerProjection(futureInput)
+  const futureResult = calculateSelectionProjection({
+    battleBonusPct,
+    barsOverride: futureBars,
+    config,
+    foodRestorePct,
+    pillAttackBonusPct: selectedPillAttackPct,
+    selection,
+  })
+  const currentProjection = currentResult.projection
+  const futureProjection = futureResult.projection
+  const openingProjection = currentResult.openingProjection
   const showFutureAsPrimary = hoursAhead > 0
   const primaryProjection = showFutureAsPrimary
     ? futureProjection
@@ -120,14 +123,16 @@ export function ProjectionSummary({
           <span>{primaryLabel}</span>
           <strong>{formatCompactNumber(primaryProjection.totalDamage)}</strong>
           <small>
-            {primaryProjection.estimatedAttempts}{' '}
+            {formatPreciseNumber(primaryProjection.estimatedAttempts)}{' '}
             {showFutureAsPrimary ? 'projected' : 'estimated'} attempts
           </small>
           <div className="damage-hero-meta">
             {showFutureAsPrimary ? (
               <>
                 <span>Now: {formatCompactNumber(currentProjection.totalDamage)}</span>
-                <span>{currentProjection.estimatedAttempts} attempts now</span>
+                <span>
+                  {formatPreciseNumber(currentProjection.estimatedAttempts)} attempts now
+                </span>
               </>
             ) : (
               <>
@@ -146,16 +151,16 @@ export function ProjectionSummary({
         <div className="metric-grid metric-grid-support">
           <div className="metric-card metric-card-compact">
             <span>Expected damage / attempt</span>
-            <strong>{formatPreciseNumber(currentProjection.expectedDamagePerAttempt)}</strong>
+            <strong>{formatPreciseNumber(openingProjection.expectedDamagePerAttempt)}</strong>
             <small>
-              {formatPreciseNumber(currentProjection.attackWithSelectedModifiers)} attack
+              {formatPreciseNumber(openingProjection.attackWithSelectedModifiers)} attack
               after pill/ammo
             </small>
           </div>
 
           <div className="metric-card metric-card-compact">
             <span>Expected HP cost / attempt</span>
-            <strong>{formatPreciseNumber(currentProjection.expectedHpLossPerAttempt)}</strong>
+            <strong>{formatPreciseNumber(openingProjection.expectedHpLossPerAttempt)}</strong>
             <small>Minimum health to start a hit: {MINIMUM_BATTLE_HEALTH}</small>
           </div>
 
@@ -170,7 +175,7 @@ export function ProjectionSummary({
             </strong>
             <small>
               {showFutureAsPrimary
-                ? `${currentProjection.estimatedAttempts} estimated attempts`
+                ? `${formatPreciseNumber(currentProjection.estimatedAttempts)} estimated attempts`
                 : `${formatPreciseNumber(futureBars.currentHealth)} HP / ${formatPreciseNumber(futureBars.currentHunger)} hunger`}
             </small>
           </div>

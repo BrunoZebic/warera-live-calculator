@@ -13,6 +13,48 @@ export type ItemRarity =
   | 'mythic'
   | 'unknown'
 
+export type EquipmentSlot =
+  | 'weapon'
+  | 'helmet'
+  | 'chest'
+  | 'pants'
+  | 'boots'
+  | 'gloves'
+
+export type EquipmentStatKey =
+  | 'attack'
+  | 'criticalChance'
+  | 'armor'
+  | 'dodge'
+  | 'precision'
+  | 'criticalDamages'
+
+export type EquipmentStatValues = Partial<Record<EquipmentStatKey, number>>
+
+export interface EquipmentStatRange {
+  key: EquipmentStatKey
+  min: number
+  max: number
+}
+
+export interface EquipmentItemMeta {
+  code: string
+  slot: EquipmentSlot
+  rarity: ItemRarity
+  iconImg?: string
+  statRanges: EquipmentStatRange[]
+}
+
+export interface EquipmentCell {
+  code: string
+  state: number
+  maxState: number
+  skills: EquipmentStatValues
+  isManual: boolean
+}
+
+export type EquipmentRow = Record<EquipmentSlot, EquipmentCell | null>
+
 export interface PlayerBars {
   currentHealth: number
   maxHealth: number
@@ -23,11 +65,21 @@ export interface PlayerBars {
 }
 
 export interface EquipmentSummary {
-  slot: 'weapon' | 'helmet' | 'chest' | 'pants' | 'boots' | 'gloves'
+  slot: EquipmentSlot
   code: string
   state: number
   maxState: number
-  skills: Record<string, number>
+  skills: EquipmentStatValues
+}
+
+export interface LiveCombatBaseStats {
+  attackBaseValue: number
+  attackPercentMultiplier: number
+  precisionBaseValue: number
+  criticalChanceBaseValue: number
+  critDamageBaseValue: number
+  armorBaseValue: number
+  dodgeBaseValue: number
 }
 
 export interface SnapshotBase extends PlayerBars {
@@ -54,6 +106,7 @@ export interface PlayerSnapshot extends SnapshotBase {
   attackTotal: number
   liveAmmoPercent: number
   equipment: EquipmentSummary[]
+  liveCombatBase: LiveCombatBaseStats
 }
 
 export interface ManualPlayerSnapshot extends SnapshotBase {
@@ -70,10 +123,21 @@ export interface RuntimeConfig {
   itemMetaByCode: Record<
     string,
     {
+      slot?: EquipmentSlot
       rarity: ItemRarity
       iconImg?: string
+      statRanges: EquipmentStatRange[]
     }
   >
+  equipmentMetaBySlot: Record<EquipmentSlot, EquipmentItemMeta[]>
+  combatRules: {
+    armorSoftCap: number
+    dodgeSoftCap: number
+    precisionOverflowTarget: 'attack'
+    precisionOverflowValue: number
+    criticalChanceOverflowTarget: 'criticalDamages'
+    criticalChanceOverflowValue: number
+  }
   defaultBars: {
     maxHealth: number
     maxHunger: number
@@ -142,4 +206,5 @@ export interface PlayerSelection {
   ammoType: AmmoType
   foodType: FoodType
   pillActive: boolean
+  equipmentRows?: EquipmentRow[]
 }

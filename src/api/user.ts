@@ -72,6 +72,12 @@ function normalizeSnapshot(
   const attackTotal = user.skills.attack.total
   const attackPreAmmo =
     liveAmmoPercent > 0 ? attackTotal / (1 + liveAmmoPercent / 100) : attackTotal
+  const attackBaseValue = user.skills.attack.value ?? 0
+  const currentWeaponValue = user.skills.attack.weapon ?? 0
+  const currentOverflowValue = user.skills.attack.overflow ?? 0
+  const attackRawTotal = attackBaseValue + currentWeaponValue + currentOverflowValue
+  const attackPercentMultiplier =
+    attackRawTotal > 0 ? attackPreAmmo / attackRawTotal : 1
 
   const roundTripAttack =
     currentAmmoType === 'none'
@@ -105,6 +111,15 @@ function normalizeSnapshot(
     dodgePct: getEffectiveStat(user.skills.dodge),
     weaponCode: equipment.weapon?.code,
     equipment: buildEquipmentSummary(equipment),
+    liveCombatBase: {
+      attackBaseValue,
+      attackPercentMultiplier,
+      precisionBaseValue: user.skills.precision.value ?? 0,
+      criticalChanceBaseValue: user.skills.criticalChance.value ?? 0,
+      critDamageBaseValue: user.skills.criticalDamages.value ?? 0,
+      armorBaseValue: user.skills.armor.value ?? 0,
+      dodgeBaseValue: user.skills.dodge.value ?? 0,
+    },
   }
 }
 

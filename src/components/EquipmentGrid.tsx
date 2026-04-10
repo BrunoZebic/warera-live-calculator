@@ -65,15 +65,16 @@ export function EquipmentGrid({
   function handleCommitSkills(
     rowIndex: number,
     slot: EquipmentSlot,
-    skills: EquipmentStatValues,
+    nextValues: { skills: EquipmentStatValues; state: number },
   ) {
     updateCell(rowIndex, slot, (currentCell) =>
       currentCell
         ? {
             ...currentCell,
+            state: nextValues.state,
             skills: {
               ...currentCell.skills,
-              ...skills,
+              ...nextValues.skills,
             },
           }
         : currentCell,
@@ -128,18 +129,35 @@ export function EquipmentGrid({
             })}
           </div>
 
-          {rows.length < MAX_EQUIPMENT_ROWS ? (
-            <button
-              className="add-row-btn"
-              onClick={() => {
-                onRowsChange(insertEquipmentRow(rows, rowIndex))
-                setPickerTarget(null)
-              }}
-              type="button"
-            >
-              Add row below
-            </button>
-          ) : null}
+          <div className="equipment-row-actions">
+            {rowIndex > 0 ? (
+              <button
+                className="remove-row-btn"
+                onClick={() => {
+                  onRowsChange(
+                    rows.filter((_, currentRowIndex) => currentRowIndex !== rowIndex),
+                  )
+                  setPickerTarget(null)
+                }}
+                type="button"
+              >
+                Remove row
+              </button>
+            ) : null}
+
+            {rowIndex === rows.length - 1 && rows.length < MAX_EQUIPMENT_ROWS ? (
+              <button
+                className="add-row-btn"
+                onClick={() => {
+                  onRowsChange(insertEquipmentRow(rows, rowIndex))
+                  setPickerTarget(null)
+                }}
+                type="button"
+              >
+                Add row below
+              </button>
+            ) : null}
+          </div>
         </div>
       ))}
     </div>

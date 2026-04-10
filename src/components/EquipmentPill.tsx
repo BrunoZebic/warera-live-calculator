@@ -15,7 +15,7 @@ interface EquipmentPillProps {
   currentMeta: EquipmentItemMeta | null
   editingEnabled: boolean
   onClosePicker: () => void
-  onCommitSkills: (skills: EquipmentStatValues) => void
+  onCommitSkills: (nextValues: { skills: EquipmentStatValues; state: number }) => void
   onOpenPicker: () => void
   onSelectItem: (meta: EquipmentItemMeta) => void
   pickerOpen: boolean
@@ -67,7 +67,7 @@ export function EquipmentPill({
           {canShowInput && currentMeta ? (
             <EquipmentStatInput
               cell={cell}
-              key={`${cell.code}-${currentMeta.statRanges.map((range) => cell.skills[range.key] ?? '').join('-')}`}
+              key={`${cell.code}-${cell.state}-${currentMeta.statRanges.map((range) => cell.skills[range.key] ?? '').join('-')}`}
               meta={currentMeta}
               onCommit={onCommitSkills}
             />

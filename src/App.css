@@ -405,6 +405,12 @@
   font-size: 0.82rem;
 }
 
+.equipment-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .equipment-row-grid {
   display: flex;
   gap: 10px;
@@ -614,6 +620,25 @@
 .add-row-btn:focus-visible {
   outline: none;
   border-color: rgba(255, 56, 56, 0.72);
+  color: #ffffff;
+}
+
+.remove-row-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.remove-row-btn:hover,
+.remove-row-btn:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
 

@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+
 import { EquipmentIcon } from './EquipmentIcon'
 import { EquipmentRarityPicker } from './EquipmentRarityPicker'
 import { EquipmentStatInput } from './EquipmentStatInput'
@@ -33,12 +35,13 @@ export function EquipmentPill({
   slot,
   slotItems,
 }: EquipmentPillProps) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null)
   const rarityClassName = currentMeta?.rarity ?? 'unknown'
   const canShowInput =
     Boolean(cell?.isManual) && Boolean(currentMeta?.statRanges.length)
 
   return (
-    <div className="equipment-pill-wrapper">
+    <div className="equipment-pill-wrapper" ref={wrapperRef}>
       {cell ? (
         <div
           className={`equipment-pill equipment-pill-rarity-${rarityClassName}`}
@@ -86,6 +89,7 @@ export function EquipmentPill({
 
       {pickerOpen && editingEnabled ? (
         <EquipmentRarityPicker
+          anchorRef={wrapperRef}
           items={slotItems}
           onClose={onClosePicker}
           onSelect={onSelectItem}

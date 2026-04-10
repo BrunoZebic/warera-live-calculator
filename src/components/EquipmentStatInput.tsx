@@ -24,16 +24,24 @@ const STAT_LABELS: Record<EquipmentStatKey, string> = {
   criticalDamages: 'CDMG',
 }
 
+function clampToRange(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
 export function EquipmentStatInput({
   cell,
   meta,
   onCommit,
 }: EquipmentStatInputProps) {
-  const [draftValues, setDraftValues] = useState<Record<string, string>>(() =>
-    meta.statRanges.reduce<Record<string, string>>((accumulator, range) => {
+  const committedValues = meta.statRanges.reduce<Record<string, string>>(
+    (accumulator, range) => {
       accumulator[range.key] = String(cell.skills[range.key] ?? '')
       return accumulator
-    }, {}),
+    },
+    {},
+  )
+  const [draftValues, setDraftValues] = useState<Record<string, string>>(
+    () => committedValues,
   )
   const [invalidKeys, setInvalidKeys] = useState<string[]>([])
 
@@ -53,6 +61,15 @@ export function EquipmentStatInput({
 
     if (nextInvalidKeys.length > 0) {
       setInvalidKeys(nextInvalidKeys)
+      setDraftValues((current) => {
+        const nextDraftValues = { ...current }
+
+        for (const key of nextInvalidKeys) {
+          nextDraftValues[key] = committedValues[key]
+        }
+
+        return nextDraftValues
+      })
       return
     }
 
@@ -68,14 +85,25 @@ export function EquipmentStatInput({
           className={`equipment-stat-input ${invalidKeys.includes(range.key) ? 'equipment-stat-input-invalid' : ''}`}
           key={range.key}
           onChange={(event) => {
+            const rawValue = event.target.value
+            const parsed = Number(rawValue)
+            const nextValue =
+              rawValue === ''
+                ? ''
+                : Number.isFinite(parsed)
+                  ? String(clampToRange(parsed, range.min, range.max))
+                  : rawValue
+
             setDraftValues((current) => ({
               ...current,
-              [range.key]: event.target.value,
+              [range.key]: nextValue,
             }))
             setInvalidKeys((current) =>
               current.filter((entry) => entry !== range.key),
             )
           }}
+          max={range.max}
+          min={range.min}
           step="1"
           title={`${range.key}: ${range.min}-${range.max}`}
           type="number"

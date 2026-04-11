@@ -19,7 +19,7 @@ type FoodKey = keyof FoodInventory
 const FOOD_LABELS: Record<FoodKey, string> = {
   bread: 'Bread',
   steak: 'Steak',
-  cookedFish: 'Tuna',
+  cookedFish: 'Fish',
 }
 
 function clampFoodCount(value: number): number {

@@ -120,7 +120,6 @@ export function EquipmentGrid({
           <div className="equipment-row-grid">
             <AmmoLoadoutCard
               capacity={row.weapon?.state ?? 0}
-              defaultAmmoType={defaultAmmoType}
               key={`ammo-${rowIndex}-${row.weapon?.state ?? 0}-${weaponAmmoLoadouts[rowIndex]?.heavyAmmo ?? 0}-${weaponAmmoLoadouts[rowIndex]?.ammo ?? 0}-${weaponAmmoLoadouts[rowIndex]?.lightAmmo ?? 0}`}
               loadout={weaponAmmoLoadouts[rowIndex] ?? createEmptyWeaponAmmoLoadout()}
               onChange={(nextLoadout) => {

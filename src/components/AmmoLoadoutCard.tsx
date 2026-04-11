@@ -3,49 +3,57 @@ import type { FormEvent } from 'react'
 
 import {
   WEAPON_AMMO_TYPES,
-  createDefaultWeaponAmmoLoadout,
-  getAssignedWeaponAmmoCount,
-  getRemainingWeaponAmmoCount,
+  createEmptyWeaponAmmoLoadout,
 } from '../lib/equipmentRows'
-import type { AmmoType, WeaponAmmoLoadout, WeaponAmmoType } from '../types'
+import type { WeaponAmmoLoadout, WeaponAmmoType } from '../types'
 
 interface AmmoLoadoutCardProps {
   capacity: number
-  defaultAmmoType: AmmoType
   loadout: WeaponAmmoLoadout
   onChange: (nextLoadout: WeaponAmmoLoadout) => void
 }
 
-const AMMO_SHORT_LABELS: Record<WeaponAmmoType, string> = {
-  heavyAmmo: 'HVY',
-  ammo: 'STD',
-  lightAmmo: 'LGT',
+const AMMO_TITLES: Record<WeaponAmmoType, string> = {
+  lightAmmo: 'Light',
+  ammo: 'Standard',
+  heavyAmmo: 'Heavy',
 }
 
-const AMMO_PICKER_LABELS: Record<WeaponAmmoType, string> = {
-  heavyAmmo: 'Heavy',
-  ammo: 'Ammo',
-  lightAmmo: 'Light',
-}
+const DISPLAY_AMMO_TYPES: WeaponAmmoType[] = ['lightAmmo', 'ammo', 'heavyAmmo']
 
 function clampCount(value: number): number {
   return Math.max(0, Math.floor(value))
 }
 
+function AmmoTypeIcon({ ammoType }: { ammoType: WeaponAmmoType }) {
+  const bulletCount =
+    ammoType === 'lightAmmo' ? 1 : ammoType === 'ammo' ? 2 : 3
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`ammo-type-icon ammo-type-icon-${ammoType}`}
+    >
+      {Array.from({ length: bulletCount }).map((_, index) => (
+        <span
+          className={`ammo-type-bullet ammo-type-bullet-${ammoType}`}
+          key={`${ammoType}-${index}`}
+        />
+      ))}
+    </span>
+  )
+}
+
 export function AmmoLoadoutCard({
   capacity,
-  defaultAmmoType,
   loadout,
   onChange,
 }: AmmoLoadoutCardProps) {
-  const [showTypePicker, setShowTypePicker] = useState(false)
   const [draftValues, setDraftValues] = useState<Record<WeaponAmmoType, string>>(() => ({
     heavyAmmo: String(loadout.heavyAmmo),
     ammo: String(loadout.ammo),
     lightAmmo: String(loadout.lightAmmo),
   }))
-  const assignedCount = getAssignedWeaponAmmoCount(loadout)
-  const remainingCount = getRemainingWeaponAmmoCount(loadout, capacity)
 
   function buildCommittedLoadout(
     nextDraftValues: Record<WeaponAmmoType, string>,
@@ -82,16 +90,16 @@ export function AmmoLoadoutCard({
     onChange(nextLoadout)
   }
 
-  function adjustAmmoCount(ammoType: WeaponAmmoType, delta: number) {
-    const parsed = Number(draftValues[ammoType] ?? '')
-    const baseValue = Number.isFinite(parsed) ? parsed : loadout[ammoType]
+  function setAmmoTypeToMax(ammoType: WeaponAmmoType) {
+    const nextLoadout = createEmptyWeaponAmmoLoadout()
+    nextLoadout[ammoType] = capacity
     const nextDraftValues = {
-      ...draftValues,
-      [ammoType]: String(clampCount(baseValue + delta)),
+      heavyAmmo: String(nextLoadout.heavyAmmo),
+      ammo: String(nextLoadout.ammo),
+      lightAmmo: String(nextLoadout.lightAmmo),
     }
-
     setDraftValues(nextDraftValues)
-    onChange(buildCommittedLoadout(nextDraftValues))
+    onChange(nextLoadout)
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -99,68 +107,21 @@ export function AmmoLoadoutCard({
     commitDraftValues()
   }
 
-  if (capacity <= 0) {
-    return (
-      <div className="equipment-pill ammo-loadout-card ammo-loadout-card-disabled">
-        <strong>Ammo</strong>
-        <small>No weapon</small>
-      </div>
-    )
-  }
-
-  if (assignedCount <= 0) {
-    if (showTypePicker) {
-      return (
-        <div className="equipment-pill ammo-loadout-card">
-          <strong>Ammo</strong>
-          <small>0/{capacity}</small>
-          <div className="ammo-loadout-picker">
-            {WEAPON_AMMO_TYPES.map((ammoType) => (
-              <button
-                className="ammo-loadout-option"
-                key={ammoType}
-                onClick={() => {
-                  onChange(createDefaultWeaponAmmoLoadout(ammoType, capacity))
-                  setShowTypePicker(false)
-                }}
-                type="button"
-              >
-                {AMMO_PICKER_LABELS[ammoType]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )
-    }
-
-    return (
-      <button
-        className="equipment-pill ammo-loadout-card ammo-loadout-empty"
-        onClick={() => setShowTypePicker(true)}
-        type="button"
-      >
-        <strong>Ammo</strong>
-        <small>0/{capacity}</small>
-        <span className="ammo-loadout-plus">+</span>
-      </button>
-    )
-  }
-
   return (
-    <form className="equipment-pill ammo-loadout-card" onSubmit={handleSubmit}>
-      <div className="ammo-loadout-header">
-        <strong>Ammo</strong>
-        <small>
-          {assignedCount}/{capacity}
-        </small>
-      </div>
-
+    <form
+      className={`ammo-loadout-card${capacity <= 0 ? ' ammo-loadout-card-disabled' : ''}`}
+      onSubmit={handleSubmit}
+    >
       <div className="ammo-loadout-editor">
-        {WEAPON_AMMO_TYPES.map((ammoType) => (
+        {DISPLAY_AMMO_TYPES.map((ammoType) => (
           <div className="ammo-loadout-row" key={ammoType}>
-            <span className="ammo-loadout-label">{AMMO_SHORT_LABELS[ammoType]}</span>
+            <div className="ammo-loadout-icon-shell" title={AMMO_TITLES[ammoType]}>
+              <AmmoTypeIcon ammoType={ammoType} />
+            </div>
             <input
-              className="equipment-stat-input ammo-loadout-input"
+              aria-label={`${AMMO_TITLES[ammoType]} ammo count`}
+              className="text-input ammo-loadout-input"
+              disabled={capacity <= 0}
               min={0}
               onBlur={() => commitDraftValues()}
               onChange={(event) => {
@@ -170,38 +131,20 @@ export function AmmoLoadoutCard({
                 }))
               }}
               step="1"
-              title={AMMO_PICKER_LABELS[ammoType]}
               type="number"
               value={draftValues[ammoType] ?? '0'}
             />
-            <div className="equipment-stepper" aria-hidden="true">
-              <button
-                className="equipment-step-btn"
-                onClick={() => adjustAmmoCount(ammoType, 1)}
-                tabIndex={-1}
-                title={`Increase ${AMMO_PICKER_LABELS[ammoType]}`}
-                type="button"
-              >
-                +
-              </button>
-              <button
-                className="equipment-step-btn"
-                onClick={() => adjustAmmoCount(ammoType, -1)}
-                tabIndex={-1}
-                title={`Decrease ${AMMO_PICKER_LABELS[ammoType]}`}
-                type="button"
-              >
-                -
-              </button>
-            </div>
+            <button
+              className="ammo-loadout-max"
+              disabled={capacity <= 0}
+              onClick={() => setAmmoTypeToMax(ammoType)}
+              type="button"
+            >
+              Max
+            </button>
           </div>
         ))}
       </div>
-
-      <small>No ammo: {remainingCount}</small>
-      {defaultAmmoType !== 'none' ? (
-        <small>Default: {AMMO_PICKER_LABELS[defaultAmmoType]}</small>
-      ) : null}
     </form>
   )
 }

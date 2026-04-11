@@ -76,8 +76,8 @@ export function ProjectionSummary({
 
   return (
     <div className="projection-summary">
-      <div className="picker-grid picker-grid-wide">
-        {showAmmoSelector ? (
+      {showAmmoSelector ? (
+        <div className="picker-grid">
           <label className="field-label">
             <span>Ammo type</span>
             <select
@@ -94,28 +94,17 @@ export function ProjectionSummary({
               ))}
             </select>
           </label>
-        ) : null}
-
-        <label className="field-label">
-          <span>Attack state</span>
-          <select
-            className="select-input"
-            onChange={(event) =>
-              onAttackModifierChange(event.target.value as AttackModifierMode)
-            }
-            value={selection.attackModifier}
-          >
-            <option value="none">No buff</option>
-            <option value="buff">Buff (+{buffAttackPct}% attack)</option>
-            <option value="debuff">Debuff (-{debuffAttackPct}% attack)</option>
-          </select>
-        </label>
-      </div>
+        </div>
+      ) : null}
 
       <FoodInventoryEditor
+        attackModifier={selection.attackModifier}
+        buffAttackPct={buffAttackPct}
         currentHunger={displayedHunger}
+        debuffAttackPct={debuffAttackPct}
         foodInventory={foodInventory}
         onChange={onFoodInventoryChange}
+        onAttackModifierChange={onAttackModifierChange}
       />
 
       <div className="result-layout">

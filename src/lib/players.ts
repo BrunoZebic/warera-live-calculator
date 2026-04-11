@@ -1,6 +1,7 @@
 import type {
   AttackModifierMode,
   CalculatorSnapshot,
+  FoodInventory,
   FoodType,
   ItemRarity,
   ManualPlayerSnapshot,
@@ -30,6 +31,12 @@ const WEAPON_RARITY_BY_CODE: Record<string, ItemRarity> = {
   jet: 'mythic',
 }
 
+export const FOOD_ORDER: Array<keyof FoodInventory> = [
+  'cookedFish',
+  'steak',
+  'bread',
+]
+
 export function createManualPlayer(
   config: RuntimeConfig,
   label = 'Manual player',
@@ -56,12 +63,21 @@ export function createManualPlayer(
   }
 }
 
+export function createEmptyFoodInventory(): FoodInventory {
+  return {
+    bread: 0,
+    steak: 0,
+    cookedFish: 0,
+  }
+}
+
 export function createSelection(snapshot: CalculatorSnapshot): PlayerSelection {
   return {
     key: `${snapshot.source}-${snapshot.id}`,
     snapshot,
     ammoType: snapshot.currentAmmoType,
     foodType: 'none',
+    foodInventory: createEmptyFoodInventory(),
     attackModifier:
       snapshot.detectedAttackModifierPct > 0
         ? 'buff'
@@ -90,6 +106,56 @@ export function getFoodRestorePct(
       return config.foodRestorePct.cookedFish
     default:
       return 0
+  }
+}
+
+export function normalizeFoodInventory(
+  foodInventory?: FoodInventory,
+): FoodInventory {
+  const current = foodInventory ?? createEmptyFoodInventory()
+
+  return {
+    bread: Math.max(0, Math.floor(current.bread || 0)),
+    steak: Math.max(0, Math.floor(current.steak || 0)),
+    cookedFish: Math.max(0, Math.floor(current.cookedFish || 0)),
+  }
+}
+
+export function getMaxFoodUses(currentHunger: number): number {
+  return Math.max(0, Math.floor(currentHunger))
+}
+
+export function calculateFoodRecovery(
+  foodInventory: FoodInventory | undefined,
+  currentHunger: number,
+  maxHealth: number,
+  config: RuntimeConfig,
+): { foodUsesAvailable: number; recoverableHpFromFood: number } {
+  const normalizedInventory = normalizeFoodInventory(foodInventory)
+  let remainingUses = getMaxFoodUses(currentHunger)
+  let consumedUses = 0
+  let recoverableHpFromFood = 0
+
+  for (const foodType of FOOD_ORDER) {
+    if (remainingUses <= 0) {
+      break
+    }
+
+    const availableCount = normalizedInventory[foodType]
+    const consumedCount = Math.min(remainingUses, availableCount)
+    if (consumedCount <= 0) {
+      continue
+    }
+
+    consumedUses += consumedCount
+    recoverableHpFromFood +=
+      consumedCount * maxHealth * (getFoodRestorePct(foodType, config) / 100)
+    remainingUses -= consumedCount
+  }
+
+  return {
+    foodUsesAvailable: consumedUses,
+    recoverableHpFromFood,
   }
 }
 

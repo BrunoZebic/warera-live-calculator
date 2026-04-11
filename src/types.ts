@@ -65,6 +65,12 @@ export interface WeaponAmmoLoadout {
   heavyAmmo: number
 }
 
+export interface FoodInventory {
+  bread: number
+  steak: number
+  cookedFish: number
+}
+
 export interface PlayerBars {
   currentHealth: number
   maxHealth: number
@@ -181,7 +187,8 @@ export interface CalcInput extends PlayerBars {
   battleBonusPct: number
   ammoType: AmmoType
   pillAttackBonusPct: number
-  foodRestorePct: number
+  foodUsesAvailable: number
+  recoverableHpFromFood: number
 }
 
 export interface DamageProjection {
@@ -190,8 +197,7 @@ export interface DamageProjection {
   expectedDamagePerAttempt: number
   expectedHpLossPerAttempt: number
   foodUsesAvailable: number
-  foodRestoreAmount: number
-  recoverableHpFromHunger: number
+  recoverableHpFromFood: number
   effectiveHealthPool: number
   estimatedAttempts: number
   totalDamage: number
@@ -215,6 +221,7 @@ export interface PlayerSelection {
   snapshot: CalculatorSnapshot
   ammoType: AmmoType
   foodType: FoodType
+  foodInventory?: FoodInventory
   attackModifier: AttackModifierMode
   equipmentRows?: EquipmentRow[]
   weaponAmmoLoadouts?: WeaponAmmoLoadout[]

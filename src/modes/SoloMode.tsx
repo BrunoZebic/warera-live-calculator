@@ -9,7 +9,7 @@ import { SearchBox } from '../components/SearchBox'
 import { createManualPlayer, createSelection } from '../lib/players'
 import type {
   AmmoType,
-  FoodType,
+  FoodInventory,
   ManualPlayerSnapshot,
   PlayerSelection,
   RuntimeConfig,
@@ -51,6 +51,7 @@ export function SoloMode({ config }: SoloModeProps) {
             ...nextSelection,
             ammoType: current.ammoType,
             foodType: current.foodType,
+            foodInventory: current.foodInventory,
             attackModifier: current.attackModifier,
           }
         }
@@ -115,14 +116,14 @@ export function SoloMode({ config }: SoloModeProps) {
                   current ? { ...current, equipmentRows } : current,
                 )
               }
+              onFoodInventoryChange={(foodInventory: FoodInventory) =>
+                setLiveSelection((current) =>
+                  current ? { ...current, foodInventory } : current,
+                )
+              }
               onWeaponAmmoLoadoutsChange={(weaponAmmoLoadouts) =>
                 setLiveSelection((current) =>
                   current ? { ...current, weaponAmmoLoadouts } : current,
-                )
-              }
-              onFoodChange={(foodType: FoodType) =>
-                setLiveSelection((current) =>
-                  current ? { ...current, foodType } : current,
                 )
               }
               selection={liveSelection}
@@ -164,8 +165,8 @@ export function SoloMode({ config }: SoloModeProps) {
             onAmmoChange={(ammoType: AmmoType) =>
               setManualSelection((current) => ({ ...current, ammoType }))
             }
-            onFoodChange={(foodType: FoodType) =>
-              setManualSelection((current) => ({ ...current, foodType }))
+            onFoodInventoryChange={(foodInventory: FoodInventory) =>
+              setManualSelection((current) => ({ ...current, foodInventory }))
             }
             onSnapshotChange={(snapshot: ManualPlayerSnapshot) =>
               setManualSelection((current) => ({ ...current, snapshot }))

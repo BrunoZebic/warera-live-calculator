@@ -1,21 +1,21 @@
 import {
   AMMO_LABELS,
-  FOOD_LABELS,
   MINIMUM_BATTLE_HEALTH,
 } from '../damage/constants'
 import { calculateSelectionProjection } from '../damage/liveProjection'
+import { FoodInventoryEditor } from './FoodInventoryEditor'
 import { projectFutureBars } from '../damage/projection'
 import {
+  createEmptyFoodInventory,
   getAttackModifierPct,
   formatCompactNumber,
   formatPreciseNumber,
-  getFoodRestorePct,
   getSelectedPillAttackPct,
 } from '../lib/players'
 import type {
   AmmoType,
   AttackModifierMode,
-  FoodType,
+  FoodInventory,
   PlayerSelection,
   RuntimeConfig,
 } from '../types'
@@ -26,7 +26,7 @@ interface ProjectionSummaryProps {
   hoursAhead: number
   onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onAmmoChange: (ammoType: AmmoType) => void
-  onFoodChange: (foodType: FoodType) => void
+  onFoodInventoryChange: (foodInventory: FoodInventory) => void
   selection: PlayerSelection
 }
 
@@ -36,10 +36,9 @@ export function ProjectionSummary({
   hoursAhead,
   onAttackModifierChange,
   onAmmoChange,
-  onFoodChange,
+  onFoodInventoryChange,
   selection,
 }: ProjectionSummaryProps) {
-  const foodRestorePct = getFoodRestorePct(selection.foodType, config)
   const selectedPillAttackPct = getSelectedPillAttackPct(selection, config)
   const buffAttackPct = getAttackModifierPct('buff', selection, config)
   const debuffAttackPct = Math.abs(
@@ -48,7 +47,6 @@ export function ProjectionSummary({
   const currentResult = calculateSelectionProjection({
     battleBonusPct,
     config,
-    foodRestorePct,
     pillAttackBonusPct: selectedPillAttackPct,
     selection,
   })
@@ -57,7 +55,6 @@ export function ProjectionSummary({
     battleBonusPct,
     barsOverride: futureBars,
     config,
-    foodRestorePct,
     pillAttackBonusPct: selectedPillAttackPct,
     selection,
   })
@@ -72,6 +69,10 @@ export function ProjectionSummary({
     ? `Total damage in ${hoursAhead}h`
     : 'Total damage now'
   const showAmmoSelector = selection.snapshot.source !== 'live'
+  const foodInventory = selection.foodInventory ?? createEmptyFoodInventory()
+  const displayedHunger = showFutureAsPrimary
+    ? futureBars.currentHunger
+    : selection.snapshot.currentHunger
 
   return (
     <div className="projection-summary">
@@ -96,25 +97,6 @@ export function ProjectionSummary({
         ) : null}
 
         <label className="field-label">
-          <span>Food type</span>
-          <select
-            className="select-input"
-            onChange={(event) => onFoodChange(event.target.value as FoodType)}
-            value={selection.foodType}
-          >
-            {(
-              Object.entries(FOOD_LABELS) as Array<[FoodType, string]>
-            ).map(([value, label]) => (
-              <option key={value} value={value}>
-                {value === 'none'
-                  ? label
-                  : `${label} (+${getFoodRestorePct(value, config)}% HP)`}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="field-label">
           <span>Attack state</span>
           <select
             className="select-input"
@@ -129,6 +111,12 @@ export function ProjectionSummary({
           </select>
         </label>
       </div>
+
+      <FoodInventoryEditor
+        currentHunger={displayedHunger}
+        foodInventory={foodInventory}
+        onChange={onFoodInventoryChange}
+      />
 
       <div className="result-layout">
         <div className="damage-hero-card">
@@ -152,8 +140,7 @@ export function ProjectionSummary({
                   Health pool: {formatPreciseNumber(currentProjection.effectiveHealthPool)}
                 </span>
                 <span>
-                  Food adds {formatPreciseNumber(currentProjection.foodRestoreAmount)} HP
-                  per full hunger
+                  Food restores {formatPreciseNumber(currentProjection.recoverableHpFromFood)} HP total
                 </span>
               </>
             )}
@@ -203,8 +190,7 @@ export function ProjectionSummary({
           {formatPreciseNumber(futureProjection.effectiveHealthPool)}
         </span>
         <span>
-          Food adds {formatPreciseNumber(currentProjection.foodRestoreAmount)} HP per
-          full hunger point
+          Food restores now: {formatPreciseNumber(currentProjection.recoverableHpFromFood)} HP
         </span>
       </div>
 

@@ -9,7 +9,6 @@ import type {
   CalcInput,
   DamageProjection,
   GroupProjection,
-  PlayerSelection,
 } from '../types'
 
 function clampPercent(value: number): number {
@@ -62,10 +61,7 @@ export function calculatePlayerProjection(input: CalcInput): DamageProjection {
     BASE_HP_COST_PER_ATTEMPT * (1 - armorPct / 100),
   )
   const expectedHpLossPerAttempt = (1 - dodgeChance) * armorReducedCost
-  const foodUsesAvailable = Math.max(0, Math.floor(input.currentHunger))
-  const foodRestoreAmount = input.maxHealth * (input.foodRestorePct / 100)
-  const recoverableHpFromHunger = foodUsesAvailable * foodRestoreAmount
-  const effectiveHealthPool = input.currentHealth + recoverableHpFromHunger
+  const effectiveHealthPool = input.currentHealth + input.recoverableHpFromFood
   const estimatedAttempts =
     effectiveHealthPool >= MINIMUM_BATTLE_HEALTH && expectedHpLossPerAttempt > 0
       ? Math.floor(effectiveHealthPool / expectedHpLossPerAttempt)
@@ -76,9 +72,8 @@ export function calculatePlayerProjection(input: CalcInput): DamageProjection {
     battleMultiplier,
     expectedDamagePerAttempt,
     expectedHpLossPerAttempt,
-    foodUsesAvailable,
-    foodRestoreAmount,
-    recoverableHpFromHunger,
+    foodUsesAvailable: input.foodUsesAvailable,
+    recoverableHpFromFood: input.recoverableHpFromFood,
     effectiveHealthPool,
     estimatedAttempts,
     totalDamage: estimatedAttempts * expectedDamagePerAttempt,
@@ -111,36 +106,5 @@ export function calculateGroupProjection(
     totalAttempts,
     playerCount: players.length,
     averageDamage: totalDamage / players.length,
-  }
-}
-
-export function buildCalcInput(
-  selection: PlayerSelection,
-  battleBonusPct: number,
-  foodRestorePct: number,
-  pillAttackBonusPct: number,
-): CalcInput {
-  const { snapshot } = selection
-
-  return {
-    id: snapshot.id,
-    username: snapshot.username,
-    currentHealth: snapshot.currentHealth,
-    maxHealth: snapshot.maxHealth,
-    currentHunger: snapshot.currentHunger,
-    maxHunger: snapshot.maxHunger,
-    healthHourlyRegen: snapshot.healthHourlyRegen,
-    hungerHourlyRegen: snapshot.hungerHourlyRegen,
-    attackPreAmmo: snapshot.attackPreAmmo,
-    detectedAttackModifierPct: snapshot.detectedAttackModifierPct,
-    precisionPct: snapshot.precisionPct,
-    criticalChancePct: snapshot.criticalChancePct,
-    critDamagePct: snapshot.critDamagePct,
-    armorPct: snapshot.armorPct,
-    dodgePct: snapshot.dodgePct,
-    battleBonusPct,
-    ammoType: selection.ammoType,
-    pillAttackBonusPct,
-    foodRestorePct,
   }
 }

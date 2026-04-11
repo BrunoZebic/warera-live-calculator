@@ -1,5 +1,5 @@
 import { MINIMUM_BATTLE_HEALTH } from './constants'
-import { buildCalcInput, calculatePlayerProjection } from './formula'
+import { calculatePlayerProjection } from './formula'
 import {
   EQUIPMENT_SLOTS,
   createEmptyWeaponAmmoLoadout,
@@ -8,6 +8,7 @@ import {
   getActiveAmmoType,
   normalizeWeaponAmmoLoadout,
 } from '../lib/equipmentRows'
+import { calculateFoodRecovery } from '../lib/players'
 import type {
   AmmoType,
   CalcInput,
@@ -26,7 +27,6 @@ interface SelectionProjectionArgs {
   battleBonusPct: number
   barsOverride?: Partial<PlayerBars>
   config: RuntimeConfig
-  foodRestorePct: number
   pillAttackBonusPct: number
   selection: PlayerSelection
 }
@@ -145,9 +145,9 @@ function buildLiveCalcInput(
   snapshot: PlayerSnapshot,
   activeEquipment: ActiveEquipmentMap,
   ammoType: AmmoType,
+  bars: PlayerBars,
   args: SelectionProjectionArgs,
 ): CalcInput {
-  const bars = buildBars(snapshot, args.barsOverride)
   const precisionRaw =
     snapshot.liveCombatBase.precisionBaseValue +
     getCellSkillValue(activeEquipment.gloves, 'precision')
@@ -183,6 +183,12 @@ function buildLiveCalcInput(
   const dodgeRaw =
     snapshot.liveCombatBase.dodgeBaseValue +
     getCellSkillValue(activeEquipment.boots, 'dodge')
+  const foodRecovery = calculateFoodRecovery(
+    args.selection.foodInventory,
+    bars.currentHunger,
+    bars.maxHealth,
+    args.config,
+  )
 
   return {
     ...bars,
@@ -198,7 +204,8 @@ function buildLiveCalcInput(
     battleBonusPct: args.battleBonusPct,
     ammoType,
     pillAttackBonusPct: args.pillAttackBonusPct,
-    foodRestorePct: args.foodRestorePct,
+    foodUsesAvailable: foodRecovery.foodUsesAvailable,
+    recoverableHpFromFood: foodRecovery.recoverableHpFromFood,
   }
 }
 
@@ -234,10 +241,12 @@ function calculateLiveEquipmentProjection(
   const openingAmmoType = weaponAmmoTracker
     ? getActiveAmmoType(weaponAmmoTracker.remainingLoadout)
     : 'none'
+  const openingBars = buildBars(snapshot, args.barsOverride)
   const openingInput = buildLiveCalcInput(
     snapshot,
     openingEquipment,
     openingAmmoType,
+    openingBars,
     args,
   )
   const openingProjection = calculatePlayerProjection(openingInput)
@@ -250,10 +259,12 @@ function calculateLiveEquipmentProjection(
     const activeAmmoType = weaponAmmoTracker
       ? getActiveAmmoType(weaponAmmoTracker.remainingLoadout)
       : 'none'
+    const phaseBars = buildBars(snapshot, args.barsOverride)
     const phaseInput = buildLiveCalcInput(
       snapshot,
       activeEquipment,
       activeAmmoType,
+      phaseBars,
       args,
     )
     const phaseProjection = calculatePlayerProjection(phaseInput)
@@ -361,14 +372,29 @@ export function calculateSelectionProjection(
   args: SelectionProjectionArgs,
 ): SelectionProjectionResult {
   const { selection } = args
-  const openingInput = {
-    ...buildCalcInput(
-      selection,
-      args.battleBonusPct,
-      args.foodRestorePct,
-      args.pillAttackBonusPct,
-    ),
-    ...buildBars(selection.snapshot, args.barsOverride),
+  const bars = buildBars(selection.snapshot, args.barsOverride)
+  const foodRecovery = calculateFoodRecovery(
+    selection.foodInventory,
+    bars.currentHunger,
+    bars.maxHealth,
+    args.config,
+  )
+  const openingInput: CalcInput = {
+    ...bars,
+    id: selection.snapshot.id,
+    username: selection.snapshot.username,
+    attackPreAmmo: selection.snapshot.attackPreAmmo,
+    detectedAttackModifierPct: selection.snapshot.detectedAttackModifierPct,
+    precisionPct: selection.snapshot.precisionPct,
+    criticalChancePct: selection.snapshot.criticalChancePct,
+    critDamagePct: selection.snapshot.critDamagePct,
+    armorPct: selection.snapshot.armorPct,
+    dodgePct: selection.snapshot.dodgePct,
+    battleBonusPct: args.battleBonusPct,
+    ammoType: selection.ammoType,
+    pillAttackBonusPct: args.pillAttackBonusPct,
+    foodUsesAvailable: foodRecovery.foodUsesAvailable,
+    recoverableHpFromFood: foodRecovery.recoverableHpFromFood,
   }
 
   if (

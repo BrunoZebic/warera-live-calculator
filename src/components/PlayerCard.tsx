@@ -3,7 +3,6 @@ import { EquipmentGrid } from './EquipmentGrid'
 import { ProjectionSummary } from './ProjectionSummary'
 import {
   getAttackModifierPct,
-  getFoodRestorePct,
   getSelectedPillAttackPct,
 } from '../lib/players'
 import {
@@ -13,7 +12,7 @@ import {
 import type {
   AmmoType,
   AttackModifierMode,
-  FoodType,
+  FoodInventory,
   PlayerSelection,
   RuntimeConfig,
 } from '../types'
@@ -25,10 +24,10 @@ interface PlayerCardProps {
   onAmmoChange: (ammoType: AmmoType) => void
   onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onEquipmentRowsChange: (rows: NonNullable<PlayerSelection['equipmentRows']>) => void
+  onFoodInventoryChange: (foodInventory: FoodInventory) => void
   onWeaponAmmoLoadoutsChange: (
     weaponAmmoLoadouts: NonNullable<PlayerSelection['weaponAmmoLoadouts']>,
   ) => void
-  onFoodChange: (foodType: FoodType) => void
   onRemove?: () => void
   selection: PlayerSelection
 }
@@ -40,8 +39,8 @@ export function PlayerCard({
   onAmmoChange,
   onAttackModifierChange,
   onEquipmentRowsChange,
+  onFoodInventoryChange,
   onWeaponAmmoLoadoutsChange,
-  onFoodChange,
   onRemove,
   selection,
 }: PlayerCardProps) {
@@ -50,7 +49,6 @@ export function PlayerCard({
   }
 
   const snapshot = selection.snapshot
-  const foodRestorePct = getFoodRestorePct(selection.foodType, config)
   const selectedPillAttackPct = getSelectedPillAttackPct(selection, config)
   const attackModifierLabel =
     selection.attackModifier === 'none'
@@ -59,7 +57,6 @@ export function PlayerCard({
   const preview = calculateSelectionProjection({
     battleBonusPct,
     config,
-    foodRestorePct,
     pillAttackBonusPct: selectedPillAttackPct,
     selection,
   })
@@ -134,7 +131,7 @@ export function PlayerCard({
         hoursAhead={hoursAhead}
         onAttackModifierChange={onAttackModifierChange}
         onAmmoChange={onAmmoChange}
-        onFoodChange={onFoodChange}
+        onFoodInventoryChange={onFoodInventoryChange}
         selection={selection}
       />
     </article>

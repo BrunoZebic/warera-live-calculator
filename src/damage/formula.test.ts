@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { calculateGroupProjection, calculatePlayerProjection } from './formula'
 import { projectFutureBars } from './projection'
+import { calculateFoodRecovery, createEmptyFoodInventory } from '../lib/players'
 import type { CalcInput, RuntimeConfig } from '../types'
 
 const runtimeConfig: RuntimeConfig = {
@@ -66,7 +67,8 @@ function makeInput(overrides: Partial<CalcInput> = {}): CalcInput {
     battleBonusPct: 20,
     ammoType: 'lightAmmo',
     pillAttackBonusPct: 0,
-    foodRestorePct: 20,
+    foodUsesAvailable: 5,
+    recoverableHpFromFood: 100,
     ...overrides,
   }
 }
@@ -79,8 +81,7 @@ describe('calculatePlayerProjection', () => {
     expect(result.expectedDamagePerAttempt).toBeCloseTo(420.75, 5)
     expect(result.expectedHpLossPerAttempt).toBeCloseTo(7.2, 5)
     expect(result.foodUsesAvailable).toBe(5)
-    expect(result.foodRestoreAmount).toBeCloseTo(20, 5)
-    expect(result.recoverableHpFromHunger).toBeCloseTo(100, 5)
+    expect(result.recoverableHpFromFood).toBeCloseTo(100, 5)
     expect(result.effectiveHealthPool).toBeCloseTo(200, 5)
     expect(result.estimatedAttempts).toBe(27)
     expect(result.totalDamage).toBeCloseTo(11360.25, 5)
@@ -91,7 +92,8 @@ describe('calculatePlayerProjection', () => {
       makeInput({
         currentHealth: 5,
         currentHunger: 0,
-        foodRestorePct: 0,
+        foodUsesAvailable: 0,
+        recoverableHpFromFood: 0,
       }),
     )
 
@@ -109,14 +111,14 @@ describe('calculatePlayerProjection', () => {
         attackPreAmmo: 300,
         detectedAttackModifierPct: 60,
         pillAttackBonusPct: 0,
-        foodRestorePct: 10,
+        foodUsesAvailable: 1,
+        recoverableHpFromFood: 12,
       }),
     )
 
     expect(result.attackWithSelectedModifiers).toBeCloseTo(206.25, 5)
     expect(result.foodUsesAvailable).toBe(1)
-    expect(result.foodRestoreAmount).toBeCloseTo(12, 5)
-    expect(result.recoverableHpFromHunger).toBeCloseTo(12, 5)
+    expect(result.recoverableHpFromFood).toBeCloseTo(12, 5)
     expect(result.effectiveHealthPool).toBeCloseTo(53.4, 5)
   })
 
@@ -134,11 +136,31 @@ describe('calculatePlayerProjection', () => {
         armorPct: 0,
         dodgePct: 0,
         currentHunger: 0,
-        foodRestorePct: 0,
+        foodUsesAvailable: 0,
+        recoverableHpFromFood: 0,
       }),
     )
 
     expect(result.attackWithSelectedModifiers).toBeCloseTo(60, 5)
+  })
+})
+
+describe('calculateFoodRecovery', () => {
+  it('consumes the best available food first up to the hunger limit', () => {
+    const result = calculateFoodRecovery(
+      {
+        ...createEmptyFoodInventory(),
+        bread: 3,
+        steak: 2,
+        cookedFish: 1,
+      },
+      3.8,
+      100,
+      runtimeConfig,
+    )
+
+    expect(result.foodUsesAvailable).toBe(3)
+    expect(result.recoverableHpFromFood).toBeCloseTo(50, 5)
   })
 })
 
@@ -172,7 +194,8 @@ describe('calculateGroupProjection', () => {
       ammoType: 'ammo',
       currentHealth: 60,
       currentHunger: 2,
-      foodRestorePct: 15,
+      foodUsesAvailable: 2,
+      recoverableHpFromFood: 30,
     })
 
     const singleA = calculatePlayerProjection(playerA)

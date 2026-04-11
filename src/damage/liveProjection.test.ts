@@ -191,7 +191,6 @@ describe('calculateSelectionProjection', () => {
     const result = calculateSelectionProjection({
       battleBonusPct: 0,
       config: runtimeConfig,
-      foodRestorePct: 0,
       pillAttackBonusPct: 0,
       selection,
     })
@@ -219,7 +218,6 @@ describe('calculateSelectionProjection', () => {
     const result = calculateSelectionProjection({
       battleBonusPct: 0,
       config: runtimeConfig,
-      foodRestorePct: 0,
       pillAttackBonusPct: 0,
       selection,
     })
@@ -235,7 +233,6 @@ describe('calculateSelectionProjection', () => {
     const postBreakProjection = calculateSelectionProjection({
       battleBonusPct: 0,
       config: runtimeConfig,
-      foodRestorePct: 0,
       pillAttackBonusPct: 0,
       selection: postBreakSelection,
     }).openingProjection
@@ -263,14 +260,12 @@ describe('calculateSelectionProjection', () => {
     const result = calculateSelectionProjection({
       battleBonusPct: 0,
       config: runtimeConfig,
-      foodRestorePct: 0,
       pillAttackBonusPct: 0,
       selection,
     })
     const postBreakProjection = calculateSelectionProjection({
       battleBonusPct: 0,
       config: runtimeConfig,
-      foodRestorePct: 0,
       pillAttackBonusPct: 0,
       selection: makeLiveSelection([
         makeRow({
@@ -312,14 +307,12 @@ describe('calculateSelectionProjection', () => {
     const result = calculateSelectionProjection({
       battleBonusPct: 0,
       config: runtimeConfig,
-      foodRestorePct: 0,
       pillAttackBonusPct: 0,
       selection,
     })
     const heavyOpening = calculateSelectionProjection({
       battleBonusPct: 0,
       config: runtimeConfig,
-      foodRestorePct: 0,
       pillAttackBonusPct: 0,
       selection: makeLiveSelection(
         [
@@ -339,7 +332,6 @@ describe('calculateSelectionProjection', () => {
     const standardOpening = calculateSelectionProjection({
       battleBonusPct: 0,
       config: runtimeConfig,
-      foodRestorePct: 0,
       pillAttackBonusPct: 0,
       selection: makeLiveSelection(
         [

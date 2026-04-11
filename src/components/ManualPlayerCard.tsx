@@ -2,7 +2,7 @@ import { ProjectionSummary } from './ProjectionSummary'
 import type {
   AmmoType,
   AttackModifierMode,
-  FoodType,
+  FoodInventory,
   ManualPlayerSnapshot,
   PlayerSelection,
   RuntimeConfig,
@@ -14,7 +14,7 @@ interface ManualPlayerCardProps {
   hoursAhead: number
   onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onAmmoChange: (ammoType: AmmoType) => void
-  onFoodChange: (foodType: FoodType) => void
+  onFoodInventoryChange: (foodInventory: FoodInventory) => void
   onRemove?: () => void
   onSnapshotChange: (snapshot: ManualPlayerSnapshot) => void
   selection: PlayerSelection
@@ -31,7 +31,7 @@ export function ManualPlayerCard({
   hoursAhead,
   onAttackModifierChange,
   onAmmoChange,
-  onFoodChange,
+  onFoodInventoryChange,
   onRemove,
   onSnapshotChange,
   selection,
@@ -288,7 +288,7 @@ export function ManualPlayerCard({
         hoursAhead={hoursAhead}
         onAttackModifierChange={onAttackModifierChange}
         onAmmoChange={onAmmoChange}
-        onFoodChange={onFoodChange}
+        onFoodInventoryChange={onFoodInventoryChange}
         selection={selection}
       />
     </article>

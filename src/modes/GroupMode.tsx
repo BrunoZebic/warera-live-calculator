@@ -10,7 +10,7 @@ import { SearchBox } from '../components/SearchBox'
 import { createManualPlayer, createSelection } from '../lib/players'
 import type {
   AmmoType,
-  FoodType,
+  FoodInventory,
   ManualPlayerSnapshot,
   PlayerSelection,
   RuntimeConfig,
@@ -139,10 +139,12 @@ export function GroupMode({ config }: GroupModeProps) {
                   ),
                 )
               }
-              onFoodChange={(foodType: FoodType) =>
+              onFoodInventoryChange={(foodInventory: FoodInventory) =>
                 setPlayers((current) =>
                   current.map((entry) =>
-                    entry.key === selection.key ? { ...entry, foodType } : entry,
+                    entry.key === selection.key
+                      ? { ...entry, foodInventory }
+                      : entry,
                   ),
                 )
               }
@@ -175,10 +177,12 @@ export function GroupMode({ config }: GroupModeProps) {
                   ),
                 )
               }
-              onFoodChange={(foodType: FoodType) =>
+              onFoodInventoryChange={(foodInventory: FoodInventory) =>
                 setPlayers((current) =>
                   current.map((entry) =>
-                    entry.key === selection.key ? { ...entry, foodType } : entry,
+                    entry.key === selection.key
+                      ? { ...entry, foodInventory }
+                      : entry,
                   ),
                 )
               }

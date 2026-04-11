@@ -3,7 +3,6 @@ import { projectFutureBars } from '../damage/projection'
 import {
   formatCompactNumber,
   formatPreciseNumber,
-  getFoodRestorePct,
   getSelectedPillAttackPct,
 } from '../lib/players'
 import type { PlayerSelection, RuntimeConfig } from '../types'
@@ -25,7 +24,6 @@ export function GroupSummary({
     calculateSelectionProjection({
       battleBonusPct,
       config,
-      foodRestorePct: getFoodRestorePct(selection.foodType, config),
       pillAttackBonusPct: getSelectedPillAttackPct(selection, config),
       selection,
     }).projection,
@@ -35,7 +33,6 @@ export function GroupSummary({
       battleBonusPct,
       barsOverride: projectFutureBars(selection.snapshot, hoursAhead, config),
       config,
-      foodRestorePct: getFoodRestorePct(selection.foodType, config),
       pillAttackBonusPct: getSelectedPillAttackPct(selection, config),
       selection,
     }).projection,

@@ -667,6 +667,104 @@
   white-space: nowrap;
 }
 
+.food-inventory-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.food-hunger-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  font-weight: 700;
+  justify-self: start;
+}
+
+.food-hunger-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.food-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.food-inventory-item {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.food-inventory-item strong {
+  color: #ffffff;
+  font-size: 0.82rem;
+}
+
+.food-inventory-item-bread {
+  background: linear-gradient(180deg, rgba(33, 112, 46, 0.24), rgba(12, 28, 15, 0.9));
+  border-color: rgba(109, 232, 124, 0.28);
+}
+
+.food-inventory-item-steak {
+  background: linear-gradient(180deg, rgba(31, 84, 153, 0.24), rgba(10, 18, 31, 0.9));
+  border-color: rgba(89, 168, 255, 0.28);
+}
+
+.food-inventory-item-cookedFish {
+  background: linear-gradient(180deg, rgba(101, 41, 150, 0.24), rgba(21, 10, 29, 0.9));
+  border-color: rgba(191, 117, 255, 0.28);
+}
+
+.food-inventory-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.food-inventory-input {
+  min-height: 40px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.food-inventory-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.food-inventory-btn {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.food-inventory-btn:hover,
+.food-inventory-btn:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.food-inventory-btn-max {
+  margin-left: auto;
+}
+
 .equipment-stat-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 16px;
@@ -901,7 +999,8 @@
   .controls-panel,
   .picker-grid,
   .picker-grid-wide,
-  .result-layout {
+  .result-layout,
+  .food-inventory-grid {
     grid-template-columns: 1fr;
   }
 

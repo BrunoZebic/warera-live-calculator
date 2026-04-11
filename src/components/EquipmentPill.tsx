@@ -8,6 +8,7 @@ import type {
   EquipmentCell,
   EquipmentItemMeta,
   EquipmentSlot,
+  EquipmentStatKey,
   EquipmentStatValues,
 } from '../types'
 
@@ -27,6 +28,15 @@ interface EquipmentPillProps {
 interface ManualDurabilityControlProps {
   cell: EquipmentCell
   onCommit: (nextState: number) => void
+}
+
+const READONLY_STAT_LABELS: Record<EquipmentStatKey, string> = {
+  attack: 'ATK',
+  criticalChance: 'CRIT',
+  armor: 'ARM',
+  dodge: 'DOG',
+  precision: 'PREC',
+  criticalDamages: 'CDMG',
 }
 
 function clampDurability(value: number, maxState: number): number {
@@ -113,6 +123,24 @@ function ManualDurabilityControl({
   )
 }
 
+function ReadonlyEquipmentStats({
+  cell,
+  meta,
+}: {
+  cell: EquipmentCell
+  meta: EquipmentItemMeta
+}) {
+  return (
+    <div className="equipment-pill-stat-list">
+      {meta.statRanges.map((range) => (
+        <span className="equipment-pill-stat-chip" key={range.key}>
+          {READONLY_STAT_LABELS[range.key]} {cell.skills[range.key] ?? 0}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export function EquipmentPill({
   cell,
   currentMeta,
@@ -129,6 +157,8 @@ export function EquipmentPill({
   const rarityClassName = currentMeta?.rarity ?? 'unknown'
   const canShowInput =
     Boolean(cell?.isManual) && Boolean(currentMeta?.statRanges.length)
+  const canShowReadonlyStats =
+    Boolean(cell && !cell.isManual && currentMeta?.statRanges.length)
   const canEditDurability = Boolean(cell?.isManual)
 
   return (
@@ -174,6 +204,10 @@ export function EquipmentPill({
               meta={currentMeta}
               onCommit={onCommitSkills}
             />
+          ) : null}
+
+          {canShowReadonlyStats && currentMeta ? (
+            <ReadonlyEquipmentStats cell={cell} meta={currentMeta} />
           ) : null}
         </div>
       ) : (

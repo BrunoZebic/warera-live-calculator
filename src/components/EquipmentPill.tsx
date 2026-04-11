@@ -82,16 +82,7 @@ function ManualDurabilityControl({
         min={1}
         onBlur={() => commitDurability(durabilityDraft)}
         onChange={(event) => {
-          const rawValue = event.target.value
-          const parsed = Number(rawValue)
-          const nextValue =
-            rawValue === ''
-              ? ''
-              : Number.isFinite(parsed)
-                ? String(clampDurability(parsed, cell.maxState))
-                : rawValue
-
-          setDurabilityDraft(nextValue)
+          setDurabilityDraft(event.target.value)
         }}
         step="1"
         title={`Durability: 1-${cell.maxState}`}

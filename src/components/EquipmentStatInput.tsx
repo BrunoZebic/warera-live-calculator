@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
-import { isValueInRange } from '../lib/equipmentRows'
 import type {
   EquipmentCell,
   EquipmentItemMeta,
-  EquipmentStatKey,
   EquipmentStatValues,
 } from '../types'
 
@@ -15,17 +13,34 @@ interface EquipmentStatInputProps {
   onCommit: (nextValues: { skills: EquipmentStatValues; state: number }) => void
 }
 
-const STAT_LABELS: Record<EquipmentStatKey, string> = {
+const STAT_LABELS = {
   attack: 'ATK',
   criticalChance: 'CRIT',
   armor: 'ARM',
   dodge: 'DOG',
   precision: 'PREC',
   criticalDamages: 'CDMG',
-}
+} as const
 
 function clampToRange(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
+}
+
+function buildCommittedSkills(
+  meta: EquipmentItemMeta,
+  draftValues: Record<string, string>,
+  currentSkills: EquipmentCell['skills'],
+): EquipmentStatValues {
+  const nextSkills: EquipmentStatValues = {}
+
+  for (const range of meta.statRanges) {
+    const parsed = Number(draftValues[range.key] ?? '')
+    nextSkills[range.key] = Number.isFinite(parsed)
+      ? clampToRange(parsed, range.min, range.max)
+      : currentSkills[range.key] ?? range.min
+  }
+
+  return nextSkills
 }
 
 export function EquipmentStatInput({
@@ -43,60 +58,48 @@ export function EquipmentStatInput({
   const [draftValues, setDraftValues] = useState<Record<string, string>>(
     () => committedValues,
   )
-  const [invalidKeys, setInvalidKeys] = useState<EquipmentStatKey[]>([])
 
   function adjustDraftValue(
     range: EquipmentItemMeta['statRanges'][number],
     delta: number,
   ) {
-    setDraftValues((current) => {
-      const currentValue = current[range.key] ?? committedValues[range.key]
-      const parsed = Number(currentValue)
-      const baseValue = Number.isFinite(parsed)
-        ? parsed
-        : Number(committedValues[range.key] ?? range.min)
-
-      return {
-        ...current,
-        [range.key]: String(clampToRange(baseValue + delta, range.min, range.max)),
-      }
-    })
-    setInvalidKeys((current) => current.filter((entry) => entry !== range.key))
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const nextSkills: EquipmentStatValues = {}
-    const nextInvalidKeys: EquipmentStatKey[] = meta.statRanges.flatMap((range) => {
-      const parsed = Number(draftValues[range.key] ?? '')
-      if (!Number.isFinite(parsed) || !isValueInRange(parsed, range)) {
-        return [range.key]
-      }
-
-      nextSkills[range.key] = parsed
-      return []
-    })
-
-    if (nextInvalidKeys.length > 0) {
-      setInvalidKeys(nextInvalidKeys)
-      setDraftValues((current) => {
-        const nextDraftValues = { ...current }
-
-        for (const key of nextInvalidKeys) {
-          nextDraftValues[key] = committedValues[key]
-        }
-
-        return nextDraftValues
-      })
-      return
+    const currentValue = draftValues[range.key] ?? committedValues[range.key]
+    const parsed = Number(currentValue)
+    const baseValue = Number.isFinite(parsed)
+      ? parsed
+      : Number(committedValues[range.key] ?? range.min)
+    const nextDraftValues = {
+      ...draftValues,
+      [range.key]: String(clampToRange(baseValue + delta, range.min, range.max)),
     }
 
-    setInvalidKeys([])
+    setDraftValues(nextDraftValues)
+    onCommit({
+      skills: buildCommittedSkills(meta, nextDraftValues, cell.skills),
+      state: cell.state,
+    })
+  }
+
+  function commitDraftValues(nextDraftValues = draftValues) {
+    const nextSkills = buildCommittedSkills(meta, nextDraftValues, cell.skills)
+    const resolvedDraftValues = meta.statRanges.reduce<Record<string, string>>(
+      (accumulator, range) => {
+        accumulator[range.key] = String(nextSkills[range.key] ?? range.min)
+        return accumulator
+      },
+      {},
+    )
+
+    setDraftValues(resolvedDraftValues)
     onCommit({
       skills: nextSkills,
       state: cell.state,
     })
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    commitDraftValues()
   }
 
   return (
@@ -105,24 +108,13 @@ export function EquipmentStatInput({
         <div className="equipment-stat-control" key={range.key}>
           <input
             aria-label={`${range.key} value`}
-            className={`equipment-stat-input ${invalidKeys.includes(range.key) ? 'equipment-stat-input-invalid' : ''}`}
+            className="equipment-stat-input"
+            onBlur={() => commitDraftValues()}
             onChange={(event) => {
-              const rawValue = event.target.value
-              const parsed = Number(rawValue)
-              const nextValue =
-                rawValue === ''
-                  ? ''
-                  : Number.isFinite(parsed)
-                    ? String(clampToRange(parsed, range.min, range.max))
-                    : rawValue
-
               setDraftValues((current) => ({
                 ...current,
-                [range.key]: nextValue,
+                [range.key]: event.target.value,
               }))
-              setInvalidKeys((current) =>
-                current.filter((entry) => entry !== range.key),
-              )
             }}
             max={range.max}
             min={range.min}

@@ -29,6 +29,12 @@ export const WEAPON_AMMO_TYPES: WeaponAmmoType[] = [
   'lightAmmo',
 ]
 
+const WEAPON_AMMO_REDUCTION_ORDER: Record<WeaponAmmoType, WeaponAmmoType[]> = {
+  lightAmmo: ['ammo', 'heavyAmmo'],
+  ammo: ['lightAmmo', 'heavyAmmo'],
+  heavyAmmo: ['lightAmmo', 'ammo'],
+}
+
 export function createEmptyEquipmentRow(): EquipmentRow {
   return {
     weapon: null,
@@ -46,6 +52,10 @@ export function createEmptyWeaponAmmoLoadout(): WeaponAmmoLoadout {
     ammo: 0,
     heavyAmmo: 0,
   }
+}
+
+function normalizeAmmoCount(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
 }
 
 export function snapshotToEquipmentRows(snapshot: PlayerSnapshot): EquipmentRow[] {
@@ -70,7 +80,7 @@ export function getWeaponAmmoCapacity(row: EquipmentRow): number {
 
 export function getAssignedWeaponAmmoCount(loadout: WeaponAmmoLoadout): number {
   return WEAPON_AMMO_TYPES.reduce(
-    (sum, ammoType) => sum + Math.max(0, Math.floor(loadout[ammoType] ?? 0)),
+    (sum, ammoType) => sum + normalizeAmmoCount(loadout[ammoType] ?? 0),
     0,
   )
 }
@@ -107,10 +117,52 @@ export function normalizeWeaponAmmoLoadout(
   const nextLoadout = createEmptyWeaponAmmoLoadout()
 
   for (const ammoType of WEAPON_AMMO_TYPES) {
-    const nextCount = Math.max(0, Math.floor(loadout[ammoType] ?? 0))
+    const nextCount = normalizeAmmoCount(loadout[ammoType] ?? 0)
     const clampedCount = Math.min(nextCount, remainingCapacity)
     nextLoadout[ammoType] = clampedCount
     remainingCapacity -= clampedCount
+  }
+
+  return nextLoadout
+}
+
+export function rebalanceWeaponAmmoLoadout(
+  loadout: WeaponAmmoLoadout,
+  capacity: number,
+  preferredAmmoType?: WeaponAmmoType | null,
+): WeaponAmmoLoadout {
+  if (!preferredAmmoType) {
+    return normalizeWeaponAmmoLoadout(loadout, capacity)
+  }
+
+  const nextLoadout = createEmptyWeaponAmmoLoadout()
+  for (const ammoType of WEAPON_AMMO_TYPES) {
+    nextLoadout[ammoType] = normalizeAmmoCount(loadout[ammoType] ?? 0)
+  }
+
+  nextLoadout[preferredAmmoType] = Math.min(
+    nextLoadout[preferredAmmoType],
+    Math.max(0, capacity),
+  )
+
+  let overflow =
+    getAssignedWeaponAmmoCount(nextLoadout) - Math.max(0, capacity)
+
+  for (const ammoType of WEAPON_AMMO_REDUCTION_ORDER[preferredAmmoType]) {
+    if (overflow <= 0) {
+      break
+    }
+
+    const reduction = Math.min(nextLoadout[ammoType], overflow)
+    nextLoadout[ammoType] -= reduction
+    overflow -= reduction
+  }
+
+  if (overflow > 0) {
+    nextLoadout[preferredAmmoType] = Math.max(
+      0,
+      nextLoadout[preferredAmmoType] - overflow,
+    )
   }
 
   return nextLoadout

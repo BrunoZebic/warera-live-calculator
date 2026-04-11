@@ -2,8 +2,8 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 
 import {
-  WEAPON_AMMO_TYPES,
   createEmptyWeaponAmmoLoadout,
+  rebalanceWeaponAmmoLoadout,
 } from '../lib/equipmentRows'
 import type { WeaponAmmoLoadout, WeaponAmmoType } from '../types'
 
@@ -23,6 +23,11 @@ const DISPLAY_AMMO_TYPES: WeaponAmmoType[] = ['lightAmmo', 'ammo', 'heavyAmmo']
 
 function clampCount(value: number): number {
   return Math.max(0, Math.floor(value))
+}
+
+function parseDraftValue(value: string, fallbackValue: number): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? clampCount(parsed) : fallbackValue
 }
 
 function AmmoTypeIcon({ ammoType }: { ammoType: WeaponAmmoType }) {
@@ -49,6 +54,8 @@ export function AmmoLoadoutCard({
   loadout,
   onChange,
 }: AmmoLoadoutCardProps) {
+  const [lastEditedAmmoType, setLastEditedAmmoType] =
+    useState<WeaponAmmoType | null>(null)
   const [draftValues, setDraftValues] = useState<Record<WeaponAmmoType, string>>(() => ({
     heavyAmmo: String(loadout.heavyAmmo),
     ammo: String(loadout.ammo),
@@ -58,35 +65,34 @@ export function AmmoLoadoutCard({
   function buildCommittedLoadout(
     nextDraftValues: Record<WeaponAmmoType, string>,
   ): WeaponAmmoLoadout {
-    let remainingCapacity = capacity
-    const nextLoadout: WeaponAmmoLoadout = {
-      heavyAmmo: 0,
-      ammo: 0,
-      lightAmmo: 0,
+    return {
+      heavyAmmo: parseDraftValue(
+        nextDraftValues.heavyAmmo,
+        loadout.heavyAmmo,
+      ),
+      ammo: parseDraftValue(nextDraftValues.ammo, loadout.ammo),
+      lightAmmo: parseDraftValue(
+        nextDraftValues.lightAmmo,
+        loadout.lightAmmo,
+      ),
     }
-
-    for (const ammoType of WEAPON_AMMO_TYPES) {
-      const parsed = Number(nextDraftValues[ammoType] ?? '')
-      const nextCount = Number.isFinite(parsed)
-        ? Math.min(clampCount(parsed), remainingCapacity)
-        : loadout[ammoType]
-
-      nextLoadout[ammoType] = nextCount
-      remainingCapacity -= nextCount
-    }
-
-    return nextLoadout
   }
 
   function commitDraftValues(
     nextDraftValues: Record<WeaponAmmoType, string> = draftValues,
+    preferredAmmoType: WeaponAmmoType | null = lastEditedAmmoType,
   ) {
-    const nextLoadout = buildCommittedLoadout(nextDraftValues)
+    const nextLoadout = rebalanceWeaponAmmoLoadout(
+      buildCommittedLoadout(nextDraftValues),
+      capacity,
+      preferredAmmoType,
+    )
     setDraftValues({
       heavyAmmo: String(nextLoadout.heavyAmmo),
       ammo: String(nextLoadout.ammo),
       lightAmmo: String(nextLoadout.lightAmmo),
     })
+    setLastEditedAmmoType(null)
     onChange(nextLoadout)
   }
 
@@ -99,12 +105,13 @@ export function AmmoLoadoutCard({
       lightAmmo: String(nextLoadout.lightAmmo),
     }
     setDraftValues(nextDraftValues)
+    setLastEditedAmmoType(null)
     onChange(nextLoadout)
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    commitDraftValues()
+    commitDraftValues(draftValues, lastEditedAmmoType)
   }
 
   return (
@@ -123,8 +130,9 @@ export function AmmoLoadoutCard({
               className="text-input ammo-loadout-input"
               disabled={capacity <= 0}
               min={0}
-              onBlur={() => commitDraftValues()}
+              onBlur={() => commitDraftValues(draftValues, ammoType)}
               onChange={(event) => {
+                setLastEditedAmmoType(ammoType)
                 setDraftValues((current) => ({
                   ...current,
                   [ammoType]: event.target.value,

@@ -5,6 +5,7 @@ import {
   createDefaultWeaponAmmoLoadout,
   createEmptyEquipmentRow,
   createEquipmentCellFromMeta,
+  rebalanceWeaponAmmoLoadout,
 } from '../lib/equipmentRows'
 import type {
   EquipmentCell,
@@ -175,6 +176,40 @@ describe('live equipment helpers', () => {
     expect(cell.skills.criticalChance).toBe(8)
     expect(cell.state).toBe(100)
     expect(cell.maxState).toBe(100)
+  })
+
+  it('treats the latest ammo edit as truth and reduces other ammo in the requested order', () => {
+    expect(
+      rebalanceWeaponAmmoLoadout(
+        {
+          heavyAmmo: 80,
+          ammo: 20,
+          lightAmmo: 50,
+        },
+        100,
+        'lightAmmo',
+      ),
+    ).toEqual({
+      heavyAmmo: 50,
+      ammo: 0,
+      lightAmmo: 50,
+    })
+
+    expect(
+      rebalanceWeaponAmmoLoadout(
+        {
+          heavyAmmo: 70,
+          ammo: 35,
+          lightAmmo: 20,
+        },
+        100,
+        'ammo',
+      ),
+    ).toEqual({
+      heavyAmmo: 65,
+      ammo: 35,
+      lightAmmo: 0,
+    })
   })
 })
 

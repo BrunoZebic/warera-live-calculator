@@ -834,6 +834,17 @@
   border-radius: 999px;
 }
 
+.food-inventory-input::-webkit-outer-spin-button,
+.food-inventory-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.food-inventory-input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
 .food-inventory-buttons {
   display: flex;
   gap: 3px;

@@ -112,6 +112,15 @@ export function GroupMode({ config }: GroupModeProps) {
                   ),
                 )
               }
+              onAttackModifierChange={(attackModifier) =>
+                setPlayers((current) =>
+                  current.map((entry) =>
+                    entry.key === selection.key
+                      ? { ...entry, attackModifier }
+                      : entry,
+                  ),
+                )
+              }
               onEquipmentRowsChange={(equipmentRows) =>
                 setPlayers((current) =>
                   current.map((entry) =>
@@ -128,13 +137,6 @@ export function GroupMode({ config }: GroupModeProps) {
                   ),
                 )
               }
-              onPillChange={(pillActive: boolean) =>
-                setPlayers((current) =>
-                  current.map((entry) =>
-                    entry.key === selection.key ? { ...entry, pillActive } : entry,
-                  ),
-                )
-              }
               onRemove={() =>
                 setPlayers((current) =>
                   current.filter((entry) => entry.key !== selection.key),
@@ -148,6 +150,15 @@ export function GroupMode({ config }: GroupModeProps) {
               config={config}
               hoursAhead={hoursAhead}
               key={selection.key}
+              onAttackModifierChange={(attackModifier) =>
+                setPlayers((current) =>
+                  current.map((entry) =>
+                    entry.key === selection.key
+                      ? { ...entry, attackModifier }
+                      : entry,
+                  ),
+                )
+              }
               onAmmoChange={(ammoType: AmmoType) =>
                 setPlayers((current) =>
                   current.map((entry) =>
@@ -159,13 +170,6 @@ export function GroupMode({ config }: GroupModeProps) {
                 setPlayers((current) =>
                   current.map((entry) =>
                     entry.key === selection.key ? { ...entry, foodType } : entry,
-                  ),
-                )
-              }
-              onPillChange={(pillActive: boolean) =>
-                setPlayers((current) =>
-                  current.map((entry) =>
-                    entry.key === selection.key ? { ...entry, pillActive } : entry,
                   ),
                 )
               }

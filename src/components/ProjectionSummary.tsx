@@ -6,6 +6,7 @@ import {
 import { calculateSelectionProjection } from '../damage/liveProjection'
 import { projectFutureBars } from '../damage/projection'
 import {
+  getAttackModifierPct,
   formatCompactNumber,
   formatPreciseNumber,
   getFoodRestorePct,
@@ -13,6 +14,7 @@ import {
 } from '../lib/players'
 import type {
   AmmoType,
+  AttackModifierMode,
   FoodType,
   PlayerSelection,
   RuntimeConfig,
@@ -22,9 +24,9 @@ interface ProjectionSummaryProps {
   battleBonusPct: number
   config: RuntimeConfig
   hoursAhead: number
+  onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onAmmoChange: (ammoType: AmmoType) => void
   onFoodChange: (foodType: FoodType) => void
-  onPillChange: (pillActive: boolean) => void
   selection: PlayerSelection
 }
 
@@ -32,13 +34,17 @@ export function ProjectionSummary({
   battleBonusPct,
   config,
   hoursAhead,
+  onAttackModifierChange,
   onAmmoChange,
   onFoodChange,
-  onPillChange,
   selection,
 }: ProjectionSummaryProps) {
   const foodRestorePct = getFoodRestorePct(selection.foodType, config)
   const selectedPillAttackPct = getSelectedPillAttackPct(selection, config)
+  const buffAttackPct = getAttackModifierPct('buff', selection, config)
+  const debuffAttackPct = Math.abs(
+    getAttackModifierPct('debuff', selection, config),
+  )
   const currentResult = calculateSelectionProjection({
     battleBonusPct,
     config,
@@ -106,14 +112,17 @@ export function ProjectionSummary({
         </label>
 
         <label className="field-label">
-          <span>Pill</span>
+          <span>Attack state</span>
           <select
             className="select-input"
-            onChange={(event) => onPillChange(event.target.value === 'on')}
-            value={selection.pillActive ? 'on' : 'off'}
+            onChange={(event) =>
+              onAttackModifierChange(event.target.value as AttackModifierMode)
+            }
+            value={selection.attackModifier}
           >
-            <option value="off">Off</option>
-            <option value="on">On (+{config.pillAttackBonusPct}% attack)</option>
+            <option value="none">No buff</option>
+            <option value="buff">Buff (+{buffAttackPct}% attack)</option>
+            <option value="debuff">Debuff (-{debuffAttackPct}% attack)</option>
           </select>
         </label>
       </div>

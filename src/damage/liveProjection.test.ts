@@ -119,7 +119,7 @@ function makeLiveSelection(rows: EquipmentRow[]): PlayerSelection {
     healthHourlyRegen: 0,
     hungerHourlyRegen: 0,
     attackPreAmmo: 120,
-    detectedPillAttackPct: 0,
+    detectedAttackModifierPct: 0,
     precisionPct: 60,
     criticalChancePct: 11,
     critDamagePct: 100,
@@ -146,7 +146,7 @@ function makeLiveSelection(rows: EquipmentRow[]): PlayerSelection {
     snapshot,
     ammoType: 'none',
     foodType: 'none',
-    pillActive: false,
+    attackModifier: 'none',
     equipmentRows: rows,
   }
 }

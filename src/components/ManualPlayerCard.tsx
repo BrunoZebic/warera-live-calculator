@@ -1,6 +1,7 @@
 import { ProjectionSummary } from './ProjectionSummary'
 import type {
   AmmoType,
+  AttackModifierMode,
   FoodType,
   ManualPlayerSnapshot,
   PlayerSelection,
@@ -11,9 +12,9 @@ interface ManualPlayerCardProps {
   battleBonusPct: number
   config: RuntimeConfig
   hoursAhead: number
+  onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onAmmoChange: (ammoType: AmmoType) => void
   onFoodChange: (foodType: FoodType) => void
-  onPillChange: (pillActive: boolean) => void
   onRemove?: () => void
   onSnapshotChange: (snapshot: ManualPlayerSnapshot) => void
   selection: PlayerSelection
@@ -28,9 +29,9 @@ export function ManualPlayerCard({
   battleBonusPct,
   config,
   hoursAhead,
+  onAttackModifierChange,
   onAmmoChange,
   onFoodChange,
-  onPillChange,
   onRemove,
   onSnapshotChange,
   selection,
@@ -285,9 +286,9 @@ export function ManualPlayerCard({
         battleBonusPct={battleBonusPct}
         config={config}
         hoursAhead={hoursAhead}
+        onAttackModifierChange={onAttackModifierChange}
         onAmmoChange={onAmmoChange}
         onFoodChange={onFoodChange}
-        onPillChange={onPillChange}
         selection={selection}
       />
     </article>

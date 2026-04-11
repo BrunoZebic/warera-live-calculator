@@ -72,6 +72,9 @@ function normalizeSnapshot(
   const attackTotal = user.skills.attack.total
   const attackPreAmmo =
     liveAmmoPercent > 0 ? attackTotal / (1 + liveAmmoPercent / 100) : attackTotal
+  const detectedAttackModifierPct =
+    (user.skills.attack.buffsPercent || 0) -
+    (user.skills.attack.debuffsPercent || 0)
   const attackBaseValue = user.skills.attack.value ?? 0
   const currentWeaponValue = user.skills.attack.weapon ?? 0
   const currentOverflowValue = user.skills.attack.overflow ?? 0
@@ -100,7 +103,7 @@ function normalizeSnapshot(
     healthHourlyRegen: user.skills.health.hourlyBarRegen,
     hungerHourlyRegen: user.skills.hunger.hourlyBarRegen,
     attackPreAmmo,
-    detectedPillAttackPct: Math.max(0, user.skills.attack.buffsPercent || 0),
+    detectedAttackModifierPct,
     attackTotal,
     liveAmmoPercent,
     currentAmmoType,

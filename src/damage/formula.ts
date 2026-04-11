@@ -16,6 +16,10 @@ function clampPercent(value: number): number {
   return Math.min(100, Math.max(0, value))
 }
 
+function getAttackModifierMultiplier(value: number): number {
+  return Math.max(0, 1 + value / 100)
+}
+
 /**
  * `hitChance` is the normalized form of Precision.
  * `missChance = 1 - hitChance`.
@@ -28,13 +32,16 @@ export function calculatePlayerProjection(input: CalcInput): DamageProjection {
   const dodgeChance = clampPercent(input.dodgePct) / 100
   const armorPct = clampPercent(input.armorPct)
   const battleMultiplier = 1 + input.battleBonusPct / 100
+  const detectedAttackModifierMultiplier = getAttackModifierMultiplier(
+    input.detectedAttackModifierPct,
+  )
   const attackBeforePillAndAmmo =
-    input.detectedPillAttackPct > 0
-      ? input.attackPreAmmo / (1 + input.detectedPillAttackPct / 100)
-      : input.attackPreAmmo
+    detectedAttackModifierMultiplier > 0
+      ? input.attackPreAmmo / detectedAttackModifierMultiplier
+      : 0
   const attackWithSelectedModifiers =
     attackBeforePillAndAmmo *
-    (1 + input.pillAttackBonusPct / 100) *
+    getAttackModifierMultiplier(input.pillAttackBonusPct) *
     (1 + AMMO_BONUS_PCT[input.ammoType] / 100)
 
   const normalHit = attackWithSelectedModifiers * battleMultiplier
@@ -125,7 +132,7 @@ export function buildCalcInput(
     healthHourlyRegen: snapshot.healthHourlyRegen,
     hungerHourlyRegen: snapshot.hungerHourlyRegen,
     attackPreAmmo: snapshot.attackPreAmmo,
-    detectedPillAttackPct: snapshot.detectedPillAttackPct,
+    detectedAttackModifierPct: snapshot.detectedAttackModifierPct,
     precisionPct: snapshot.precisionPct,
     criticalChancePct: snapshot.criticalChancePct,
     critDamagePct: snapshot.critDamagePct,

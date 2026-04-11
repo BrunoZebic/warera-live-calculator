@@ -51,7 +51,7 @@ export function SoloMode({ config }: SoloModeProps) {
             ...nextSelection,
             ammoType: current.ammoType,
             foodType: current.foodType,
-            pillActive: current.pillActive,
+            attackModifier: current.attackModifier,
           }
         }
 
@@ -105,6 +105,11 @@ export function SoloMode({ config }: SoloModeProps) {
                   current ? { ...current, ammoType } : current,
                 )
               }
+              onAttackModifierChange={(attackModifier) =>
+                setLiveSelection((current) =>
+                  current ? { ...current, attackModifier } : current,
+                )
+              }
               onEquipmentRowsChange={(equipmentRows) =>
                 setLiveSelection((current) =>
                   current ? { ...current, equipmentRows } : current,
@@ -113,11 +118,6 @@ export function SoloMode({ config }: SoloModeProps) {
               onFoodChange={(foodType: FoodType) =>
                 setLiveSelection((current) =>
                   current ? { ...current, foodType } : current,
-                )
-              }
-              onPillChange={(pillActive: boolean) =>
-                setLiveSelection((current) =>
-                  current ? { ...current, pillActive } : current,
                 )
               }
               selection={liveSelection}
@@ -153,18 +153,18 @@ export function SoloMode({ config }: SoloModeProps) {
             battleBonusPct={battleBonusPct}
             config={config}
             hoursAhead={hoursAhead}
+            onAttackModifierChange={(attackModifier) =>
+              setManualSelection((current) => ({ ...current, attackModifier }))
+            }
             onAmmoChange={(ammoType: AmmoType) =>
               setManualSelection((current) => ({ ...current, ammoType }))
             }
             onFoodChange={(foodType: FoodType) =>
-            setManualSelection((current) => ({ ...current, foodType }))
-          }
-          onPillChange={(pillActive: boolean) =>
-            setManualSelection((current) => ({ ...current, pillActive }))
-          }
-          onSnapshotChange={(snapshot: ManualPlayerSnapshot) =>
-            setManualSelection((current) => ({ ...current, snapshot }))
-          }
+              setManualSelection((current) => ({ ...current, foodType }))
+            }
+            onSnapshotChange={(snapshot: ManualPlayerSnapshot) =>
+              setManualSelection((current) => ({ ...current, snapshot }))
+            }
             selection={manualSelection}
           />
         </>

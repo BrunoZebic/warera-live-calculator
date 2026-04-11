@@ -176,7 +176,7 @@ function buildLiveCalcInput(
     id: snapshot.id,
     username: snapshot.username,
     attackPreAmmo,
-    detectedPillAttackPct: snapshot.detectedPillAttackPct,
+    detectedAttackModifierPct: snapshot.detectedAttackModifierPct,
     precisionPct,
     criticalChancePct,
     critDamagePct,

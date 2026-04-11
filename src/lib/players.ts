@@ -1,4 +1,5 @@
 import type {
+  AttackModifierMode,
   CalculatorSnapshot,
   FoodType,
   ItemRarity,
@@ -41,7 +42,7 @@ export function createManualPlayer(
     healthHourlyRegen: config.defaultBars.healthHourlyRegen,
     hungerHourlyRegen: config.defaultBars.hungerHourlyRegen,
     attackPreAmmo: config.defaultCombat.attackPreAmmo,
-    detectedPillAttackPct: 0,
+    detectedAttackModifierPct: 0,
     precisionPct: config.defaultCombat.precisionPct,
     criticalChancePct: config.defaultCombat.criticalChancePct,
     critDamagePct: config.defaultCombat.critDamagePct,
@@ -58,7 +59,12 @@ export function createSelection(snapshot: CalculatorSnapshot): PlayerSelection {
     snapshot,
     ammoType: snapshot.currentAmmoType,
     foodType: 'none',
-    pillActive: snapshot.detectedPillAttackPct > 0,
+    attackModifier:
+      snapshot.detectedAttackModifierPct > 0
+        ? 'buff'
+        : snapshot.detectedAttackModifierPct < 0
+          ? 'debuff'
+          : 'none',
     equipmentRows:
       snapshot.source === 'live' ? snapshotToEquipmentRows(snapshot) : undefined,
   }
@@ -80,17 +86,31 @@ export function getFoodRestorePct(
   }
 }
 
+export function getAttackModifierPct(
+  mode: AttackModifierMode,
+  selection: PlayerSelection,
+  config: RuntimeConfig,
+): number {
+  if (mode === 'none') {
+    return 0
+  }
+
+  if (mode === 'buff') {
+    return selection.snapshot.detectedAttackModifierPct > 0
+      ? selection.snapshot.detectedAttackModifierPct
+      : config.pillAttackBonusPct
+  }
+
+  return selection.snapshot.detectedAttackModifierPct < 0
+    ? selection.snapshot.detectedAttackModifierPct
+    : -config.pillAttackBonusPct
+}
+
 export function getSelectedPillAttackPct(
   selection: PlayerSelection,
   config: RuntimeConfig,
 ): number {
-  if (!selection.pillActive) {
-    return 0
-  }
-
-  return selection.snapshot.detectedPillAttackPct > 0
-    ? selection.snapshot.detectedPillAttackPct
-    : config.pillAttackBonusPct
+  return getAttackModifierPct(selection.attackModifier, selection, config)
 }
 
 export function getItemRarity(code: string, config: RuntimeConfig): ItemRarity {

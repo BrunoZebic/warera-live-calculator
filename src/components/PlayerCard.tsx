@@ -2,20 +2,27 @@ import { calculateSelectionProjection } from '../damage/liveProjection'
 import { EquipmentGrid } from './EquipmentGrid'
 import { ProjectionSummary } from './ProjectionSummary'
 import {
+  getAttackModifierPct,
   getFoodRestorePct,
   getSelectedPillAttackPct,
 } from '../lib/players'
 import { snapshotToEquipmentRows } from '../lib/equipmentRows'
-import type { AmmoType, FoodType, PlayerSelection, RuntimeConfig } from '../types'
+import type {
+  AmmoType,
+  AttackModifierMode,
+  FoodType,
+  PlayerSelection,
+  RuntimeConfig,
+} from '../types'
 
 interface PlayerCardProps {
   battleBonusPct: number
   config: RuntimeConfig
   hoursAhead: number
   onAmmoChange: (ammoType: AmmoType) => void
+  onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onEquipmentRowsChange: (rows: NonNullable<PlayerSelection['equipmentRows']>) => void
   onFoodChange: (foodType: FoodType) => void
-  onPillChange: (pillActive: boolean) => void
   onRemove?: () => void
   selection: PlayerSelection
 }
@@ -25,9 +32,9 @@ export function PlayerCard({
   config,
   hoursAhead,
   onAmmoChange,
+  onAttackModifierChange,
   onEquipmentRowsChange,
   onFoodChange,
-  onPillChange,
   onRemove,
   selection,
 }: PlayerCardProps) {
@@ -38,6 +45,10 @@ export function PlayerCard({
   const snapshot = selection.snapshot
   const foodRestorePct = getFoodRestorePct(selection.foodType, config)
   const selectedPillAttackPct = getSelectedPillAttackPct(selection, config)
+  const attackModifierLabel =
+    selection.attackModifier === 'none'
+      ? 'none'
+      : `${selectedPillAttackPct > 0 ? '+' : ''}${getAttackModifierPct(selection.attackModifier, selection, config)}%`
   const preview = calculateSelectionProjection({
     battleBonusPct,
     config,
@@ -85,7 +96,7 @@ export function PlayerCard({
           Crit {preview.openingInput.criticalChancePct.toFixed(1)}%
         </span>
         <span className="stat-chip">
-          Pill {selection.pillActive ? `+${selectedPillAttackPct}%` : 'off'}
+          Attack mod {attackModifierLabel}
         </span>
         <span className="stat-chip">
           Crit dmg {preview.openingInput.critDamagePct.toFixed(1)}%
@@ -108,9 +119,9 @@ export function PlayerCard({
         battleBonusPct={battleBonusPct}
         config={config}
         hoursAhead={hoursAhead}
+        onAttackModifierChange={onAttackModifierChange}
         onAmmoChange={onAmmoChange}
         onFoodChange={onFoodChange}
-        onPillChange={onPillChange}
         selection={selection}
       />
     </article>

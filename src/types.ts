@@ -4,6 +4,8 @@ export type AmmoType = 'none' | 'lightAmmo' | 'ammo' | 'heavyAmmo'
 
 export type FoodType = 'none' | 'bread' | 'steak' | 'cookedFish'
 
+export type AttackModifierMode = 'none' | 'buff' | 'debuff'
+
 export type ItemRarity =
   | 'common'
   | 'uncommon'
@@ -86,7 +88,7 @@ export interface SnapshotBase extends PlayerBars {
   id: string
   username: string
   attackPreAmmo: number
-  detectedPillAttackPct: number
+  detectedAttackModifierPct: number
   precisionPct: number
   criticalChancePct: number
   /**
@@ -158,7 +160,7 @@ export interface CalcInput extends PlayerBars {
   id: string
   username: string
   attackPreAmmo: number
-  detectedPillAttackPct: number
+  detectedAttackModifierPct: number
   precisionPct: number
   criticalChancePct: number
   /**
@@ -205,6 +207,6 @@ export interface PlayerSelection {
   snapshot: CalculatorSnapshot
   ammoType: AmmoType
   foodType: FoodType
-  pillActive: boolean
+  attackModifier: AttackModifierMode
   equipmentRows?: EquipmentRow[]
 }

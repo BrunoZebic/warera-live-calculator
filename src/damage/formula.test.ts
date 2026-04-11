@@ -57,7 +57,7 @@ function makeInput(overrides: Partial<CalcInput> = {}): CalcInput {
     healthHourlyRegen: 10,
     hungerHourlyRegen: 0.7,
     attackPreAmmo: 300,
-    detectedPillAttackPct: 0,
+    detectedAttackModifierPct: 0,
     precisionPct: 90,
     criticalChancePct: 25,
     critDamagePct: 50,
@@ -100,14 +100,14 @@ describe('calculatePlayerProjection', () => {
     expect(result.totalDamage).toBe(0)
   })
 
-  it('only counts full hunger points for food uses and supports pill toggling', () => {
+  it('only counts full hunger points for food uses and supports buff removal', () => {
     const result = calculatePlayerProjection(
       makeInput({
         currentHealth: 41.4,
         currentHunger: 1.8,
         maxHealth: 120,
         attackPreAmmo: 300,
-        detectedPillAttackPct: 60,
+        detectedAttackModifierPct: 60,
         pillAttackBonusPct: 0,
         foodRestorePct: 10,
       }),
@@ -118,6 +118,27 @@ describe('calculatePlayerProjection', () => {
     expect(result.foodRestoreAmount).toBeCloseTo(12, 5)
     expect(result.recoverableHpFromHunger).toBeCloseTo(12, 5)
     expect(result.effectiveHealthPool).toBeCloseTo(53.4, 5)
+  })
+
+  it('removes a detected debuff before applying a selected debuff state', () => {
+    const result = calculatePlayerProjection(
+      makeInput({
+        attackPreAmmo: 120,
+        detectedAttackModifierPct: -20,
+        pillAttackBonusPct: -60,
+        ammoType: 'none',
+        battleBonusPct: 0,
+        precisionPct: 100,
+        criticalChancePct: 0,
+        critDamagePct: 0,
+        armorPct: 0,
+        dodgePct: 0,
+        currentHunger: 0,
+        foodRestorePct: 0,
+      }),
+    )
+
+    expect(result.attackWithSelectedModifiers).toBeCloseTo(60, 5)
   })
 })
 

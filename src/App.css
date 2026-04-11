@@ -462,6 +462,81 @@
   cursor: pointer;
 }
 
+.ammo-loadout-card {
+  justify-items: center;
+}
+
+.ammo-loadout-card-disabled {
+  opacity: 0.72;
+}
+
+.ammo-loadout-empty {
+  gap: 4px;
+}
+
+.ammo-loadout-plus {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.ammo-loadout-header {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+}
+
+.ammo-loadout-editor,
+.ammo-loadout-picker {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.ammo-loadout-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.ammo-loadout-label {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ammo-loadout-input {
+  width: 100%;
+}
+
+.ammo-loadout-option {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.ammo-loadout-option:hover,
+.ammo-loadout-option:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .equipment-pill-empty:disabled {
   cursor: default;
   opacity: 0.8;

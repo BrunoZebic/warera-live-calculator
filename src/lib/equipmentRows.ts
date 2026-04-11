@@ -1,4 +1,5 @@
 import type {
+  AmmoType,
   EquipmentCell,
   EquipmentItemMeta,
   EquipmentRow,
@@ -7,6 +8,8 @@ import type {
   EquipmentStatValues,
   PlayerSnapshot,
   RuntimeConfig,
+  WeaponAmmoLoadout,
+  WeaponAmmoType,
 } from '../types'
 
 export const EQUIPMENT_SLOTS: EquipmentSlot[] = [
@@ -20,6 +23,12 @@ export const EQUIPMENT_SLOTS: EquipmentSlot[] = [
 
 export const MAX_EQUIPMENT_ROWS = 10
 
+export const WEAPON_AMMO_TYPES: WeaponAmmoType[] = [
+  'heavyAmmo',
+  'ammo',
+  'lightAmmo',
+]
+
 export function createEmptyEquipmentRow(): EquipmentRow {
   return {
     weapon: null,
@@ -28,6 +37,14 @@ export function createEmptyEquipmentRow(): EquipmentRow {
     pants: null,
     boots: null,
     gloves: null,
+  }
+}
+
+export function createEmptyWeaponAmmoLoadout(): WeaponAmmoLoadout {
+  return {
+    lightAmmo: 0,
+    ammo: 0,
+    heavyAmmo: 0,
   }
 }
 
@@ -45,6 +62,105 @@ export function snapshotToEquipmentRows(snapshot: PlayerSnapshot): EquipmentRow[
   }
 
   return [row]
+}
+
+export function getWeaponAmmoCapacity(row: EquipmentRow): number {
+  return row.weapon?.state ?? 0
+}
+
+export function getAssignedWeaponAmmoCount(loadout: WeaponAmmoLoadout): number {
+  return WEAPON_AMMO_TYPES.reduce(
+    (sum, ammoType) => sum + Math.max(0, Math.floor(loadout[ammoType] ?? 0)),
+    0,
+  )
+}
+
+export function getRemainingWeaponAmmoCount(
+  loadout: WeaponAmmoLoadout,
+  capacity: number,
+): number {
+  return Math.max(0, capacity - getAssignedWeaponAmmoCount(loadout))
+}
+
+export function createDefaultWeaponAmmoLoadout(
+  ammoType: AmmoType,
+  capacity: number,
+): WeaponAmmoLoadout {
+  const nextLoadout = createEmptyWeaponAmmoLoadout()
+
+  if (ammoType !== 'none' && capacity > 0) {
+    nextLoadout[ammoType] = capacity
+  }
+
+  return nextLoadout
+}
+
+export function normalizeWeaponAmmoLoadout(
+  loadout: WeaponAmmoLoadout,
+  capacity: number,
+): WeaponAmmoLoadout {
+  if (capacity <= 0) {
+    return createEmptyWeaponAmmoLoadout()
+  }
+
+  let remainingCapacity = capacity
+  const nextLoadout = createEmptyWeaponAmmoLoadout()
+
+  for (const ammoType of WEAPON_AMMO_TYPES) {
+    const nextCount = Math.max(0, Math.floor(loadout[ammoType] ?? 0))
+    const clampedCount = Math.min(nextCount, remainingCapacity)
+    nextLoadout[ammoType] = clampedCount
+    remainingCapacity -= clampedCount
+  }
+
+  return nextLoadout
+}
+
+export function syncWeaponAmmoLoadoutToWeapon(
+  currentLoadout: WeaponAmmoLoadout,
+  previousWeapon: EquipmentCell | null,
+  nextWeapon: EquipmentCell | null,
+  defaultAmmoType: AmmoType,
+): WeaponAmmoLoadout {
+  if (!nextWeapon) {
+    return createEmptyWeaponAmmoLoadout()
+  }
+
+  if (!previousWeapon) {
+    return createDefaultWeaponAmmoLoadout(defaultAmmoType, nextWeapon.state)
+  }
+
+  return normalizeWeaponAmmoLoadout(currentLoadout, nextWeapon.state)
+}
+
+export function snapshotToWeaponAmmoLoadouts(
+  snapshot: PlayerSnapshot,
+): WeaponAmmoLoadout[] {
+  const rows = snapshotToEquipmentRows(snapshot)
+  return createWeaponAmmoLoadoutsFromRows(rows, snapshot.currentAmmoType)
+}
+
+export function createWeaponAmmoLoadoutsFromRows(
+  rows: EquipmentRow[],
+  defaultAmmoType: AmmoType,
+): WeaponAmmoLoadout[] {
+  return rows.map((row) =>
+    row.weapon
+      ? createDefaultWeaponAmmoLoadout(defaultAmmoType, row.weapon.state)
+      : createEmptyWeaponAmmoLoadout(),
+  )
+}
+
+export function getActiveAmmoType(
+  loadout: WeaponAmmoLoadout,
+): AmmoType {
+  for (const ammoType of WEAPON_AMMO_TYPES) {
+    if ((loadout[ammoType] ?? 0) > 0) {
+      return ammoType
+    }
+  }
+
+  return 'none'
 }
 
 export function getMiddleValue(range: EquipmentStatRange): number {

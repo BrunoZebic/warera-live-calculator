@@ -115,6 +115,11 @@ export function SoloMode({ config }: SoloModeProps) {
                   current ? { ...current, equipmentRows } : current,
                 )
               }
+              onWeaponAmmoLoadoutsChange={(weaponAmmoLoadouts) =>
+                setLiveSelection((current) =>
+                  current ? { ...current, weaponAmmoLoadouts } : current,
+                )
+              }
               onFoodChange={(foodType: FoodType) =>
                 setLiveSelection((current) =>
                   current ? { ...current, foodType } : current,

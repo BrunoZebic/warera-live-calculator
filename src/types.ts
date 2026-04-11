@@ -2,6 +2,8 @@ export type AppMode = 'solo' | 'group'
 
 export type AmmoType = 'none' | 'lightAmmo' | 'ammo' | 'heavyAmmo'
 
+export type WeaponAmmoType = Exclude<AmmoType, 'none'>
+
 export type FoodType = 'none' | 'bread' | 'steak' | 'cookedFish'
 
 export type AttackModifierMode = 'none' | 'buff' | 'debuff'
@@ -56,6 +58,12 @@ export interface EquipmentCell {
 }
 
 export type EquipmentRow = Record<EquipmentSlot, EquipmentCell | null>
+
+export interface WeaponAmmoLoadout {
+  lightAmmo: number
+  ammo: number
+  heavyAmmo: number
+}
 
 export interface PlayerBars {
   currentHealth: number
@@ -209,4 +217,5 @@ export interface PlayerSelection {
   foodType: FoodType
   attackModifier: AttackModifierMode
   equipmentRows?: EquipmentRow[]
+  weaponAmmoLoadouts?: WeaponAmmoLoadout[]
 }

@@ -1,7 +1,15 @@
 import { MINIMUM_BATTLE_HEALTH } from './constants'
 import { buildCalcInput, calculatePlayerProjection } from './formula'
-import { EQUIPMENT_SLOTS, findNextFilledEquipmentCell } from '../lib/equipmentRows'
+import {
+  EQUIPMENT_SLOTS,
+  createEmptyWeaponAmmoLoadout,
+  createWeaponAmmoLoadoutsFromRows,
+  findNextFilledEquipmentCell,
+  getActiveAmmoType,
+  normalizeWeaponAmmoLoadout,
+} from '../lib/equipmentRows'
 import type {
+  AmmoType,
   CalcInput,
   DamageProjection,
   EquipmentCell,
@@ -11,6 +19,7 @@ import type {
   PlayerSelection,
   PlayerSnapshot,
   RuntimeConfig,
+  WeaponAmmoLoadout,
 } from '../types'
 
 interface SelectionProjectionArgs {
@@ -33,6 +42,10 @@ type EquipmentTracker = {
   cell: EquipmentCell
   rowIndex: number
   remainingState: number
+} | null
+type WeaponAmmoTracker = {
+  rowIndex: number
+  remainingLoadout: WeaponAmmoLoadout
 } | null
 
 function clampPercent(value: number): number {
@@ -129,9 +142,9 @@ function buildBars(
 }
 
 function buildLiveCalcInput(
-  selection: PlayerSelection,
   snapshot: PlayerSnapshot,
   activeEquipment: ActiveEquipmentMap,
+  ammoType: AmmoType,
   args: SelectionProjectionArgs,
 ): CalcInput {
   const bars = buildBars(snapshot, args.barsOverride)
@@ -183,28 +196,66 @@ function buildLiveCalcInput(
     armorPct: applySoftCap(armorRaw, args.config.combatRules.armorSoftCap),
     dodgePct: applySoftCap(dodgeRaw, args.config.combatRules.dodgeSoftCap),
     battleBonusPct: args.battleBonusPct,
-    ammoType: selection.ammoType,
+    ammoType,
     pillAttackBonusPct: args.pillAttackBonusPct,
     foodRestorePct: args.foodRestorePct,
   }
 }
 
+function buildWeaponAmmoTracker(
+  weaponAmmoLoadouts: WeaponAmmoLoadout[],
+  weaponTracker: EquipmentTracker,
+): WeaponAmmoTracker {
+  if (!weaponTracker) {
+    return null
+  }
+
+  return {
+    rowIndex: weaponTracker.rowIndex,
+    remainingLoadout: normalizeWeaponAmmoLoadout(
+      weaponAmmoLoadouts[weaponTracker.rowIndex] ?? createEmptyWeaponAmmoLoadout(),
+      weaponTracker.cell.state,
+    ),
+  }
+}
+
 function calculateLiveEquipmentProjection(
   rows: EquipmentRow[],
+  weaponAmmoLoadouts: WeaponAmmoLoadout[],
   args: SelectionProjectionArgs,
   snapshot: PlayerSnapshot,
 ): SelectionProjectionResult {
   const openingEquipment = getOpeningActiveEquipment(rows)
-  const openingInput = buildLiveCalcInput(args.selection, snapshot, openingEquipment, args)
-  const openingProjection = calculatePlayerProjection(openingInput)
   const trackers = buildTrackers(rows)
+  let weaponAmmoTracker = buildWeaponAmmoTracker(
+    weaponAmmoLoadouts,
+    trackers.weapon,
+  )
+  const openingAmmoType = weaponAmmoTracker
+    ? getActiveAmmoType(weaponAmmoTracker.remainingLoadout)
+    : 'none'
+  const openingInput = buildLiveCalcInput(
+    snapshot,
+    openingEquipment,
+    openingAmmoType,
+    args,
+  )
+  const openingProjection = calculatePlayerProjection(openingInput)
   let remainingHealthPool = openingProjection.effectiveHealthPool
   let totalDamage = 0
   let totalAttempts = 0
 
   while (remainingHealthPool >= MINIMUM_BATTLE_HEALTH) {
     const activeEquipment = buildActiveEquipmentFromTrackers(trackers)
-    const phaseInput = buildLiveCalcInput(args.selection, snapshot, activeEquipment, args)
+    const activeAmmoType = weaponAmmoTracker
+      ? getActiveAmmoType(weaponAmmoTracker.remainingLoadout)
+      : 'none'
+    const phaseInput = buildLiveCalcInput(
+      snapshot,
+      activeEquipment,
+      activeAmmoType,
+      args,
+    )
     const phaseProjection = calculatePlayerProjection(phaseInput)
     const expectedHpLossPerAttempt = phaseProjection.expectedHpLossPerAttempt
 
@@ -234,11 +285,18 @@ function calculateLiveEquipmentProjection(
 
       return [Math.ceil(tracker.remainingState / wearRate)]
     })
+    const attemptsUntilAmmoBreak =
+      weaponAmmoTracker && activeAmmoType !== 'none'
+        ? [weaponAmmoTracker.remainingLoadout[activeAmmoType]]
+        : []
 
     const phaseAttempts = Math.min(
       healthLimitedAttempts,
       ...(attemptsUntilEquipmentBreak.length > 0
         ? attemptsUntilEquipmentBreak
+        : [healthLimitedAttempts]),
+      ...(attemptsUntilAmmoBreak.length > 0
+        ? attemptsUntilAmmoBreak
         : [healthLimitedAttempts]),
     )
 
@@ -249,6 +307,13 @@ function calculateLiveEquipmentProjection(
     totalAttempts += phaseAttempts
     totalDamage += phaseAttempts * phaseProjection.expectedDamagePerAttempt
     remainingHealthPool -= phaseAttempts * expectedHpLossPerAttempt
+
+    if (weaponAmmoTracker && activeAmmoType !== 'none') {
+      weaponAmmoTracker.remainingLoadout[activeAmmoType] = Math.max(
+        0,
+        weaponAmmoTracker.remainingLoadout[activeAmmoType] - phaseAttempts,
+      )
+    }
 
     for (const slot of EQUIPMENT_SLOTS) {
       const tracker = trackers[slot]
@@ -271,6 +336,13 @@ function calculateLiveEquipmentProjection(
             remainingState: replacement.cell.state,
           }
         : null
+
+      if (slot === 'weapon') {
+        weaponAmmoTracker = buildWeaponAmmoTracker(
+          weaponAmmoLoadouts,
+          trackers.weapon,
+        )
+      }
     }
   }
 
@@ -312,8 +384,16 @@ export function calculateSelectionProjection(
     }
   }
 
+  const weaponAmmoLoadouts =
+    selection.weaponAmmoLoadouts ??
+    createWeaponAmmoLoadoutsFromRows(
+      selection.equipmentRows,
+      selection.snapshot.currentAmmoType,
+    )
+
   return calculateLiveEquipmentProjection(
     selection.equipmentRows,
+    weaponAmmoLoadouts,
     args,
     selection.snapshot,
   )

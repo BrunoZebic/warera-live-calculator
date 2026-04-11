@@ -6,7 +6,10 @@ import {
   getFoodRestorePct,
   getSelectedPillAttackPct,
 } from '../lib/players'
-import { snapshotToEquipmentRows } from '../lib/equipmentRows'
+import {
+  createWeaponAmmoLoadoutsFromRows,
+  snapshotToEquipmentRows,
+} from '../lib/equipmentRows'
 import type {
   AmmoType,
   AttackModifierMode,
@@ -22,6 +25,9 @@ interface PlayerCardProps {
   onAmmoChange: (ammoType: AmmoType) => void
   onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onEquipmentRowsChange: (rows: NonNullable<PlayerSelection['equipmentRows']>) => void
+  onWeaponAmmoLoadoutsChange: (
+    weaponAmmoLoadouts: NonNullable<PlayerSelection['weaponAmmoLoadouts']>,
+  ) => void
   onFoodChange: (foodType: FoodType) => void
   onRemove?: () => void
   selection: PlayerSelection
@@ -34,6 +40,7 @@ export function PlayerCard({
   onAmmoChange,
   onAttackModifierChange,
   onEquipmentRowsChange,
+  onWeaponAmmoLoadoutsChange,
   onFoodChange,
   onRemove,
   selection,
@@ -57,6 +64,9 @@ export function PlayerCard({
     selection,
   })
   const equipmentRows = selection.equipmentRows ?? snapshotToEquipmentRows(snapshot)
+  const weaponAmmoLoadouts =
+    selection.weaponAmmoLoadouts ??
+    createWeaponAmmoLoadoutsFromRows(equipmentRows, snapshot.currentAmmoType)
 
   return (
     <article className="panel player-card">
@@ -111,8 +121,11 @@ export function PlayerCard({
 
       <EquipmentGrid
         config={config}
+        defaultAmmoType={snapshot.currentAmmoType}
         onRowsChange={onEquipmentRowsChange}
+        onWeaponAmmoLoadoutsChange={onWeaponAmmoLoadoutsChange}
         rows={equipmentRows}
+        weaponAmmoLoadouts={weaponAmmoLoadouts}
       />
 
       <ProjectionSummary

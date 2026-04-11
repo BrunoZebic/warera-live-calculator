@@ -130,6 +130,15 @@ export function GroupMode({ config }: GroupModeProps) {
                   ),
                 )
               }
+              onWeaponAmmoLoadoutsChange={(weaponAmmoLoadouts) =>
+                setPlayers((current) =>
+                  current.map((entry) =>
+                    entry.key === selection.key
+                      ? { ...entry, weaponAmmoLoadouts }
+                      : entry,
+                  ),
+                )
+              }
               onFoodChange={(foodType: FoodType) =>
                 setPlayers((current) =>
                   current.map((entry) =>

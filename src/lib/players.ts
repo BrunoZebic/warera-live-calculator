@@ -7,7 +7,10 @@ import type {
   PlayerSelection,
   RuntimeConfig,
 } from '../types'
-import { snapshotToEquipmentRows } from './equipmentRows'
+import {
+  snapshotToEquipmentRows,
+  snapshotToWeaponAmmoLoadouts,
+} from './equipmentRows'
 
 const ARMOR_RARITY_BY_TIER: Record<string, ItemRarity> = {
   '1': 'common',
@@ -67,6 +70,10 @@ export function createSelection(snapshot: CalculatorSnapshot): PlayerSelection {
           : 'none',
     equipmentRows:
       snapshot.source === 'live' ? snapshotToEquipmentRows(snapshot) : undefined,
+    weaponAmmoLoadouts:
+      snapshot.source === 'live'
+        ? snapshotToWeaponAmmoLoadouts(snapshot)
+        : undefined,
   }
 }
 

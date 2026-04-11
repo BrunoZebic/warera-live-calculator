@@ -1,26 +1,34 @@
 import { useState } from 'react'
 
+import { AmmoLoadoutCard } from './AmmoLoadoutCard'
 import { EquipmentPill } from './EquipmentPill'
 import {
   EQUIPMENT_SLOTS,
   MAX_EQUIPMENT_ROWS,
+  createEmptyWeaponAmmoLoadout,
   createEquipmentCellFromMeta,
   getEquipmentMetaForCode,
   hasEquipmentEditingMetadata,
   insertEquipmentRow,
+  syncWeaponAmmoLoadoutToWeapon,
 } from '../lib/equipmentRows'
 import type {
+  AmmoType,
   EquipmentItemMeta,
   EquipmentRow,
   EquipmentSlot,
   EquipmentStatValues,
   RuntimeConfig,
+  WeaponAmmoLoadout,
 } from '../types'
 
 interface EquipmentGridProps {
   config: RuntimeConfig
+  defaultAmmoType: AmmoType
   onRowsChange: (rows: EquipmentRow[]) => void
+  onWeaponAmmoLoadoutsChange: (weaponAmmoLoadouts: WeaponAmmoLoadout[]) => void
   rows: EquipmentRow[]
+  weaponAmmoLoadouts: WeaponAmmoLoadout[]
 }
 
 interface PickerTarget {
@@ -30,8 +38,11 @@ interface PickerTarget {
 
 export function EquipmentGrid({
   config,
+  defaultAmmoType,
   onRowsChange,
+  onWeaponAmmoLoadoutsChange,
   rows,
+  weaponAmmoLoadouts,
 }: EquipmentGridProps) {
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null)
   const editingEnabled = hasEquipmentEditingMetadata(config)
@@ -41,16 +52,27 @@ export function EquipmentGrid({
     slot: EquipmentSlot,
     updater: (current: EquipmentRow[EquipmentSlot]) => EquipmentRow[EquipmentSlot],
   ) {
-    onRowsChange(
-      rows.map((row, currentRowIndex) =>
-        currentRowIndex === rowIndex
-          ? {
-              ...row,
-              [slot]: updater(row[slot]),
-            }
-          : row,
-      ),
+    const nextRows = rows.map((row, currentRowIndex) =>
+      currentRowIndex === rowIndex
+        ? {
+            ...row,
+            [slot]: updater(row[slot]),
+          }
+        : row,
     )
+    const nextWeaponAmmoLoadouts = [...weaponAmmoLoadouts]
+
+    if (slot === 'weapon') {
+      nextWeaponAmmoLoadouts[rowIndex] = syncWeaponAmmoLoadoutToWeapon(
+        nextWeaponAmmoLoadouts[rowIndex] ?? createEmptyWeaponAmmoLoadout(),
+        rows[rowIndex]?.weapon ?? null,
+        nextRows[rowIndex]?.weapon ?? null,
+        defaultAmmoType,
+      )
+    }
+
+    onRowsChange(nextRows)
+    onWeaponAmmoLoadoutsChange(nextWeaponAmmoLoadouts)
   }
 
   function handleSelectItem(
@@ -96,6 +118,18 @@ export function EquipmentGrid({
           </div>
 
           <div className="equipment-row-grid">
+            <AmmoLoadoutCard
+              capacity={row.weapon?.state ?? 0}
+              defaultAmmoType={defaultAmmoType}
+              key={`ammo-${rowIndex}-${row.weapon?.state ?? 0}-${weaponAmmoLoadouts[rowIndex]?.heavyAmmo ?? 0}-${weaponAmmoLoadouts[rowIndex]?.ammo ?? 0}-${weaponAmmoLoadouts[rowIndex]?.lightAmmo ?? 0}`}
+              loadout={weaponAmmoLoadouts[rowIndex] ?? createEmptyWeaponAmmoLoadout()}
+              onChange={(nextLoadout) => {
+                const nextWeaponAmmoLoadouts = [...weaponAmmoLoadouts]
+                nextWeaponAmmoLoadouts[rowIndex] = nextLoadout
+                onWeaponAmmoLoadoutsChange(nextWeaponAmmoLoadouts)
+              }}
+            />
+
             {EQUIPMENT_SLOTS.map((slot) => {
               const cell = row[slot]
               const currentMeta = cell ? getEquipmentMetaForCode(cell.code, config) : null
@@ -137,6 +171,11 @@ export function EquipmentGrid({
                   onRowsChange(
                     rows.filter((_, currentRowIndex) => currentRowIndex !== rowIndex),
                   )
+                  onWeaponAmmoLoadoutsChange(
+                    weaponAmmoLoadouts.filter(
+                      (_, currentRowIndex) => currentRowIndex !== rowIndex,
+                    ),
+                  )
                   setPickerTarget(null)
                 }}
                 type="button"
@@ -150,6 +189,13 @@ export function EquipmentGrid({
                 className="add-row-btn"
                 onClick={() => {
                   onRowsChange(insertEquipmentRow(rows, rowIndex))
+                  const nextWeaponAmmoLoadouts = [...weaponAmmoLoadouts]
+                  nextWeaponAmmoLoadouts.splice(
+                    rowIndex + 1,
+                    0,
+                    createEmptyWeaponAmmoLoadout(),
+                  )
+                  onWeaponAmmoLoadoutsChange(nextWeaponAmmoLoadouts)
                   setPickerTarget(null)
                 }}
                 type="button"

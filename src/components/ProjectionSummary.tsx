@@ -71,26 +71,29 @@ export function ProjectionSummary({
   const primaryLabel = showFutureAsPrimary
     ? `Total damage in ${hoursAhead}h`
     : 'Total damage now'
+  const showAmmoSelector = selection.snapshot.source !== 'live'
 
   return (
     <div className="projection-summary">
       <div className="picker-grid picker-grid-wide">
-        <label className="field-label">
-          <span>Ammo type</span>
-          <select
-            className="select-input"
-            onChange={(event) => onAmmoChange(event.target.value as AmmoType)}
-            value={selection.ammoType}
-          >
-            {(
-              Object.entries(AMMO_LABELS) as Array<[AmmoType, string]>
-            ).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showAmmoSelector ? (
+          <label className="field-label">
+            <span>Ammo type</span>
+            <select
+              className="select-input"
+              onChange={(event) => onAmmoChange(event.target.value as AmmoType)}
+              value={selection.ammoType}
+            >
+              {(
+                Object.entries(AMMO_LABELS) as Array<[AmmoType, string]>
+              ).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="field-label">
           <span>Food type</span>

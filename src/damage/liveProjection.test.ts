@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { calculateSelectionProjection } from './liveProjection'
 import {
+  createDefaultWeaponAmmoLoadout,
   createEmptyEquipmentRow,
   createEquipmentCellFromMeta,
 } from '../lib/equipmentRows'
@@ -12,6 +13,7 @@ import type {
   PlayerSelection,
   PlayerSnapshot,
   RuntimeConfig,
+  WeaponAmmoLoadout,
 } from '../types'
 
 const runtimeConfig: RuntimeConfig = {
@@ -107,7 +109,11 @@ function makeRow(overrides: Partial<EquipmentRow>): EquipmentRow {
   }
 }
 
-function makeLiveSelection(rows: EquipmentRow[]): PlayerSelection {
+function makeLiveSelection(
+  rows: EquipmentRow[],
+  overrides: Partial<PlayerSnapshot> = {},
+  weaponAmmoLoadouts?: WeaponAmmoLoadout[],
+): PlayerSelection {
   const snapshot: PlayerSnapshot = {
     source: 'live',
     id: 'live-player',
@@ -139,6 +145,7 @@ function makeLiveSelection(rows: EquipmentRow[]): PlayerSelection {
       armorBaseValue: 0,
       dodgeBaseValue: 0,
     },
+    ...overrides,
   }
 
   return {
@@ -148,6 +155,7 @@ function makeLiveSelection(rows: EquipmentRow[]): PlayerSelection {
     foodType: 'none',
     attackModifier: 'none',
     equipmentRows: rows,
+    weaponAmmoLoadouts,
   }
 }
 
@@ -276,6 +284,84 @@ describe('calculateSelectionProjection', () => {
     expect(result.projection.totalDamage).toBeCloseTo(
       result.openingProjection.expectedDamagePerAttempt +
         postBreakProjection.expectedDamagePerAttempt * 2,
+      5,
+    )
+  })
+
+  it('uses the strongest remaining ammo on the current weapon row first', () => {
+    const rowOne = makeRow({
+      weapon: makeCell(lowWeaponMeta, { state: 2, isManual: false }),
+      gloves: makeCell(glovesMeta, { state: 100, isManual: false }),
+    })
+    const selection = makeLiveSelection(
+      [rowOne],
+      {
+        currentHealth: 20,
+        currentAmmoType: 'ammo',
+        dodgePct: 0,
+      },
+      [
+        {
+          ...createDefaultWeaponAmmoLoadout('ammo', 1),
+          heavyAmmo: 1,
+          ammo: 1,
+        },
+      ],
+    )
+
+    const result = calculateSelectionProjection({
+      battleBonusPct: 0,
+      config: runtimeConfig,
+      foodRestorePct: 0,
+      pillAttackBonusPct: 0,
+      selection,
+    })
+    const heavyOpening = calculateSelectionProjection({
+      battleBonusPct: 0,
+      config: runtimeConfig,
+      foodRestorePct: 0,
+      pillAttackBonusPct: 0,
+      selection: makeLiveSelection(
+        [
+          makeRow({
+            weapon: makeCell(lowWeaponMeta, { state: 1, isManual: false }),
+            gloves: makeCell(glovesMeta, { state: 100, isManual: false }),
+          }),
+        ],
+        {
+          currentHealth: 20,
+          currentAmmoType: 'heavyAmmo',
+          dodgePct: 0,
+        },
+        [createDefaultWeaponAmmoLoadout('heavyAmmo', 1)],
+      ),
+    }).openingProjection
+    const standardOpening = calculateSelectionProjection({
+      battleBonusPct: 0,
+      config: runtimeConfig,
+      foodRestorePct: 0,
+      pillAttackBonusPct: 0,
+      selection: makeLiveSelection(
+        [
+          makeRow({
+            weapon: makeCell(lowWeaponMeta, { state: 1, isManual: false }),
+            gloves: makeCell(glovesMeta, { state: 100, isManual: false }),
+          }),
+        ],
+        {
+          currentHealth: 20,
+          currentAmmoType: 'ammo',
+          dodgePct: 0,
+        },
+        [createDefaultWeaponAmmoLoadout('ammo', 1)],
+      ),
+    }).openingProjection
+
+    expect(result.openingInput.ammoType).toBe('heavyAmmo')
+    expect(result.projection.estimatedAttempts).toBe(2)
+    expect(result.projection.totalDamage).toBeCloseTo(
+      heavyOpening.expectedDamagePerAttempt +
+        standardOpening.expectedDamagePerAttempt,
       5,
     )
   })

@@ -20,10 +20,19 @@ import type { EquipmentStatRange } from '../../src/types.ts'
 
 const BLOB_ACCESS = 'public'
 const CONSUMABLE_PRICES_CACHE_TTL_MS = 5 * 60 * 1000
-const EQUIPMENT_SALES_CACHE_TTL_MS = 15 * 60 * 1000
+const EQUIPMENT_PRICE_SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000
 const GAME_CONFIG_CACHE_TTL_MS = 30 * 60 * 1000
+const EQUIPMENT_PRICE_REFRESH_BATCH_SIZE = 6
 const CONSUMABLE_PRICES_CACHE_PATH = 'pricing-cache/consumables.json'
-const EQUIPMENT_SALES_CACHE_PREFIX = 'pricing-cache/equipment-sales'
+const EQUIPMENT_PRICE_SNAPSHOT_CACHE_PATH = 'pricing-cache/equipment-snapshot.json'
+const EQUIPMENT_USAGES = new Set([
+  'weapon',
+  'helmet',
+  'chest',
+  'pants',
+  'boots',
+  'gloves',
+])
 const WARERA_API_BASE =
   process.env.WARERA_API_BASE ??
   process.env.VITE_API_BASE ??
@@ -32,6 +41,11 @@ const WARERA_API_BASE =
 interface CacheEntry<TValue> {
   expiresAt: number
   value: TValue
+}
+
+interface EquipmentPriceSnapshot {
+  generatedAt: string
+  salesByCode: Record<string, EquipmentQuoteComparableSale[]>
 }
 
 const memoryCache = new Map<string, CacheEntry<unknown>>()
@@ -54,8 +68,21 @@ function hasBlobStorage() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN)
 }
 
-function getEquipmentSalesCachePath(itemCode: string) {
-  return `${EQUIPMENT_SALES_CACHE_PREFIX}/${itemCode}.json`
+async function mapInBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  mapper: (item: T) => Promise<R>,
+) {
+  const results: R[] = []
+
+  for (let index = 0; index < items.length; index += batchSize) {
+    const batch = items.slice(index, index + batchSize)
+    const batchResults = await Promise.all(batch.map(mapper))
+
+    results.push(...batchResults)
+  }
+
+  return results
 }
 
 async function readBlobCache<TValue>(path: string): Promise<CacheEntry<TValue> | null> {
@@ -223,12 +250,41 @@ function getItemStatRanges(
   })
 }
 
+function getEquipmentItemCodes(
+  gameConfig: GameConfigGetGameConfigResponse,
+) {
+  return Object.values(gameConfig.items)
+    .flatMap((item) => {
+      const candidate = item as {
+        code?: string
+        dynamicStats?: Partial<Record<string, number[]>>
+        usage?: string
+      }
+
+      if (
+        !candidate.code ||
+        !candidate.dynamicStats ||
+        !candidate.usage ||
+        !EQUIPMENT_USAGES.has(candidate.usage)
+      ) {
+        return []
+      }
+
+      return [candidate.code]
+    })
+    .sort()
+}
+
 function mapComparableSales(
   response: TransactionGetPaginatedTransactionsResponse,
   itemCode: string,
 ): EquipmentQuoteComparableSale[] {
   return response.items.flatMap((item) => {
-    if (!item.item || item.item.code !== itemCode) {
+    if (
+      !item.item ||
+      item.item.code !== itemCode ||
+      item.item.state !== item.item.maxState
+    ) {
       return []
     }
 
@@ -245,43 +301,58 @@ function mapComparableSales(
   })
 }
 
-async function getEquipmentComparableSales(
-  itemCode: string,
-  apiKey: string | undefined,
-) {
+async function buildEquipmentPriceSnapshot(
+  gameConfig: GameConfigGetGameConfigResponse,
+): Promise<EquipmentPriceSnapshot> {
+  const apiKey = process.env.WARERA_API_KEY
+
   if (!apiKey) {
-    return null
-  }
-
-  const cacheKey = `equipment-sales:${itemCode}`
-  const cachePath = getEquipmentSalesCachePath(itemCode)
-  const cachedSales = await readCachedValue<EquipmentQuoteComparableSale[]>(
-    cacheKey,
-    cachePath,
-  )
-
-  if (cachedSales) {
-    return cachedSales
+    return {
+      generatedAt: new Date().toISOString(),
+      salesByCode: {},
+    }
   }
 
   const client = createWarEraApiClient(apiKey)
-  const sales = mapComparableSales(
-    (await client.transaction.getPaginatedTransactions({
-      itemCode,
-      limit: 30,
-      transactionType: 'itemMarket',
-    })) as TransactionGetPaginatedTransactionsResponse,
-    itemCode,
+  const entries = await mapInBatches(
+    getEquipmentItemCodes(gameConfig),
+    EQUIPMENT_PRICE_REFRESH_BATCH_SIZE,
+    async (itemCode) => {
+      try {
+        const response = (await client.transaction.getPaginatedTransactions({
+          itemCode,
+          limit: 30,
+          transactionType: 'itemMarket',
+        })) as TransactionGetPaginatedTransactionsResponse
+
+        return [itemCode, mapComparableSales(response, itemCode)] as const
+      } catch (error) {
+        console.warn(`Refreshing equipment snapshot failed for ${itemCode}.`, error)
+        return [itemCode, []] as const
+      }
+    },
   )
 
-  await writeCachedValue(
+  return {
+    generatedAt: new Date().toISOString(),
+    salesByCode: Object.fromEntries(entries),
+  }
+}
+
+async function getEquipmentPriceSnapshot(
+  gameConfig: GameConfigGetGameConfigResponse,
+) {
+  const cacheKey = 'equipment-price-snapshot'
+  const cachedSnapshot = await readCachedValue<EquipmentPriceSnapshot>(
     cacheKey,
-    cachePath,
-    sales,
-    EQUIPMENT_SALES_CACHE_TTL_MS,
+    EQUIPMENT_PRICE_SNAPSHOT_CACHE_PATH,
   )
 
-  return sales
+  if (cachedSnapshot) {
+    return cachedSnapshot
+  }
+
+  return refreshEquipmentPriceSnapshot(gameConfig)
 }
 
 function createUnavailableEquipmentQuote(): EquipmentPriceQuote {
@@ -293,6 +364,22 @@ function createUnavailableEquipmentQuote(): EquipmentPriceQuote {
   }
 }
 
+export async function refreshEquipmentPriceSnapshot(
+  gameConfigInput?: GameConfigGetGameConfigResponse,
+) {
+  const gameConfig = gameConfigInput ?? (await getGameConfig())
+  const snapshot = await buildEquipmentPriceSnapshot(gameConfig)
+
+  await writeCachedValue(
+    'equipment-price-snapshot',
+    EQUIPMENT_PRICE_SNAPSHOT_CACHE_PATH,
+    snapshot,
+    EQUIPMENT_PRICE_SNAPSHOT_TTL_MS,
+  )
+
+  return snapshot
+}
+
 export async function getPricingQuote(
   request: PricingQuoteRequest,
 ): Promise<PricingQuoteResponse> {
@@ -300,46 +387,25 @@ export async function getPricingQuote(
     getConsumablePrices(),
     getGameConfig(),
   ])
-  const itemCodes = [...new Set(request.equipmentItems.map((item) => item.code))]
-  const apiKey = process.env.WARERA_API_KEY
-  const quotesByCode = new Map<string, EquipmentPriceQuote | null>()
-  const salesByCode = new Map<string, EquipmentQuoteComparableSale[] | null>()
-
-  await Promise.all(
-    itemCodes.map(async (itemCode) => {
-      try {
-        const sales = await getEquipmentComparableSales(itemCode, apiKey)
-        salesByCode.set(itemCode, sales)
-      } catch (error) {
-        console.warn(`Loading equipment sales for ${itemCode} failed.`, error)
-        salesByCode.set(itemCode, null)
-      }
-    }),
-  )
+  const equipmentSnapshot = await getEquipmentPriceSnapshot(gameConfig)
+  const quotesByItemId = new Map<string, EquipmentPriceQuote>()
 
   const equipmentQuotes = request.equipmentItems.reduce<
     PricingQuoteResponse['equipmentQuotes']
   >((accumulator, item) => {
-    const sales = salesByCode.get(item.code)
-
-    if (!sales) {
-      accumulator[item.itemId] = {
-        ...createUnavailableEquipmentQuote(),
-        code: item.code,
-        itemId: item.itemId,
-      }
-      return accumulator
-    }
-
-    let quote = quotesByCode.get(`${item.code}:${item.itemId}`)
+    let quote = quotesByItemId.get(item.itemId)
 
     if (!quote) {
-      quote = quoteEquipmentFullPrice(
-        item,
-        sales,
-        getItemStatRanges(gameConfig, item.code),
-      )
-      quotesByCode.set(`${item.code}:${item.itemId}`, quote)
+      const sales = equipmentSnapshot.salesByCode[item.code] ?? []
+      quote =
+        sales.length > 0
+          ? quoteEquipmentFullPrice(
+              item,
+              sales,
+              getItemStatRanges(gameConfig, item.code),
+            )
+          : createUnavailableEquipmentQuote()
+      quotesByItemId.set(item.itemId, quote)
     }
 
     accumulator[item.itemId] = {

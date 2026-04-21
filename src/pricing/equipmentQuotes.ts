@@ -41,18 +41,6 @@ function isFinitePositiveNumber(value: number) {
   return Number.isFinite(value) && value > 0
 }
 
-export function normalizeFullDurabilityPrice(
-  money: number,
-  state: number,
-  maxState: number,
-): number {
-  if (!isFinitePositiveNumber(money) || !isFinitePositiveNumber(maxState)) {
-    return 0
-  }
-
-  return money * (maxState / Math.max(state, 1))
-}
-
 export function calculateNormalizedStatDistance(
   targetSkills: EquipmentStatValues,
   comparableSkills: EquipmentStatValues,
@@ -107,7 +95,8 @@ function filterComparableSalesByAge(
       Number.isFinite(createdAtMs) &&
       createdAtMs >= lookbackThresholdMs &&
       isFinitePositiveNumber(sale.money) &&
-      isFinitePositiveNumber(sale.maxState)
+      isFinitePositiveNumber(sale.maxState) &&
+      sale.state === sale.maxState
     )
   })
 }
@@ -145,13 +134,9 @@ export function quoteEquipmentFullPrice(
     }
   }
 
-  const normalizedPrices = retainedSales.map((sale) =>
-    normalizeFullDurabilityPrice(sale.money, sale.state, sale.maxState),
-  )
-
   if (retainedSales.length < MIN_COMPARABLE_EQUIPMENT_SALES) {
     return {
-      estimatedFullItemPrice: median(normalizedPrices),
+      estimatedFullItemPrice: median(retainedSales.map((sale) => sale.money)),
       lookbackDays,
       sampleSize: retainedSales.length,
       unavailable: false,
@@ -169,9 +154,7 @@ export function quoteEquipmentFullPrice(
 
   return {
     estimatedFullItemPrice: median(
-      closestComparableSales.map((sale) =>
-        normalizeFullDurabilityPrice(sale.money, sale.state, sale.maxState),
-      ),
+      closestComparableSales.map((sale) => sale.money),
     ),
     lookbackDays,
     sampleSize: closestComparableSales.length,

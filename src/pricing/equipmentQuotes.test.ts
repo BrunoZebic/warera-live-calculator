@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   calculateNormalizedStatDistance,
-  normalizeFullDurabilityPrice,
   quoteEquipmentFullPrice,
 } from './equipmentQuotes'
 import type { EquipmentStatRange } from '../types'
@@ -11,12 +10,6 @@ const sniperStatRanges: EquipmentStatRange[] = [
   { key: 'attack', min: 101, max: 130 },
   { key: 'criticalChance', min: 16, max: 20 },
 ]
-
-describe('normalizeFullDurabilityPrice', () => {
-  it('normalizes a sale back to full durability', () => {
-    expect(normalizeFullDurabilityPrice(30, 50, 100)).toBe(60)
-  })
-})
 
 describe('calculateNormalizedStatDistance', () => {
   it('compares normalized rolls across all configured stat ranges', () => {
@@ -104,6 +97,35 @@ describe('quoteEquipmentFullPrice', () => {
       lookbackDays: 30,
       sampleSize: 0,
       unavailable: true,
+      usedFallbackPricing: true,
+    })
+  })
+
+  it('ignores non-full-durability sales', () => {
+    const quote = quoteEquipmentFullPrice(
+      {
+        code: 'gun',
+        maxState: 100,
+        skills: { attack: 55, criticalChance: 8 },
+        state: 100,
+      },
+      [
+        { code: 'gun', createdAt: '2026-04-21T10:00:00.000Z', maxState: 100, money: 10, skills: { attack: 55, criticalChance: 8 }, state: 80 },
+        { code: 'gun', createdAt: '2026-04-21T09:00:00.000Z', maxState: 100, money: 11, skills: { attack: 55, criticalChance: 8 }, state: 100 },
+        { code: 'gun', createdAt: '2026-04-21T08:00:00.000Z', maxState: 100, money: 12, skills: { attack: 55, criticalChance: 8 }, state: 100 },
+      ],
+      [
+        { key: 'attack', min: 51, max: 60 },
+        { key: 'criticalChance', min: 6, max: 10 },
+      ],
+      new Date('2026-04-22T00:00:00.000Z'),
+    )
+
+    expect(quote).toMatchObject({
+      estimatedFullItemPrice: 11.5,
+      lookbackDays: 30,
+      sampleSize: 2,
+      unavailable: false,
       usedFallbackPricing: true,
     })
   })

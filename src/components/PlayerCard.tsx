@@ -1,5 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
+
 import { calculateSelectionProjection } from '../damage/liveProjection'
 import { EquipmentGrid } from './EquipmentGrid'
+import { LiveSkillEditorPopover } from './LiveSkillEditorPopover'
 import { ProjectionSummary } from './ProjectionSummary'
 import {
   getAttackModifierPct,
@@ -18,12 +21,16 @@ import type {
 } from '../types'
 
 interface PlayerCardProps {
+  battleHours: number
   battleBonusPct: number
   config: RuntimeConfig
   hoursAhead: number
   onAmmoChange: (ammoType: AmmoType) => void
   onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onEquipmentRowsChange: (rows: NonNullable<PlayerSelection['equipmentRows']>) => void
+  onLiveBaseSkillOverridesChange: (
+    liveBaseSkillOverrides: PlayerSelection['liveBaseSkillOverrides'],
+  ) => void
   onFoodInventoryChange: (foodInventory: FoodInventory) => void
   onWeaponAmmoLoadoutsChange: (
     weaponAmmoLoadouts: NonNullable<PlayerSelection['weaponAmmoLoadouts']>,
@@ -33,17 +40,52 @@ interface PlayerCardProps {
 }
 
 export function PlayerCard({
+  battleHours,
   battleBonusPct,
   config,
   hoursAhead,
   onAmmoChange,
   onAttackModifierChange,
   onEquipmentRowsChange,
+  onLiveBaseSkillOverridesChange,
   onFoodInventoryChange,
   onWeaponAmmoLoadoutsChange,
   onRemove,
   selection,
 }: PlayerCardProps) {
+  const [skillEditorOpen, setSkillEditorOpen] = useState(false)
+  const skillEditorRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!skillEditorOpen) {
+      return
+    }
+
+    function handleDocumentPointerDown(event: MouseEvent) {
+      if (!skillEditorRef.current?.contains(event.target as Node)) {
+        setSkillEditorOpen(false)
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSkillEditorOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleDocumentPointerDown)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handleDocumentPointerDown)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [skillEditorOpen])
+
+  useEffect(() => {
+    setSkillEditorOpen(false)
+  }, [selection.key])
+
   if (selection.snapshot.source !== 'live') {
     return null
   }
@@ -69,13 +111,31 @@ export function PlayerCard({
     <article className="panel player-card">
       <div className="card-header">
         <div className="identity-row">
-          <span className="avatar-chip avatar-large" aria-hidden="true">
-            {snapshot.avatarUrl ? (
-              <img alt="" src={snapshot.avatarUrl} />
-            ) : (
-              snapshot.username.slice(0, 1).toUpperCase()
-            )}
-          </span>
+          <div className="avatar-editor-anchor" ref={skillEditorRef}>
+            <button
+              aria-expanded={skillEditorOpen}
+              aria-label={`Edit ${snapshot.username} live base skills`}
+              className="avatar-chip avatar-button avatar-large"
+              onClick={() => setSkillEditorOpen((current) => !current)}
+              type="button"
+            >
+              {snapshot.avatarUrl ? (
+                <img alt="" src={snapshot.avatarUrl} />
+              ) : (
+                snapshot.username.slice(0, 1).toUpperCase()
+              )}
+            </button>
+
+            {skillEditorOpen ? (
+              <LiveSkillEditorPopover
+                liveCombatBase={snapshot.liveCombatBase}
+                onChange={onLiveBaseSkillOverridesChange}
+                onClose={() => setSkillEditorOpen(false)}
+                onReset={() => onLiveBaseSkillOverridesChange(undefined)}
+                overrides={selection.liveBaseSkillOverrides}
+              />
+            ) : null}
+          </div>
           <div>
             <h3>{snapshot.username}</h3>
             <p>
@@ -126,6 +186,7 @@ export function PlayerCard({
       />
 
       <ProjectionSummary
+        battleHours={battleHours}
         battleBonusPct={battleBonusPct}
         config={config}
         hoursAhead={hoursAhead}

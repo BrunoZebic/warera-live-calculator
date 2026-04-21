@@ -130,8 +130,13 @@ export function calculateFoodRecovery(
   currentHunger: number,
   maxHealth: number,
   config: RuntimeConfig,
-): { foodUsesAvailable: number; recoverableHpFromFood: number } {
+): {
+  consumedFood: FoodInventory
+  foodUsesAvailable: number
+  recoverableHpFromFood: number
+} {
   const normalizedInventory = normalizeFoodInventory(foodInventory)
+  const consumedFood = createEmptyFoodInventory()
   let remainingUses = getMaxFoodUses(currentHunger)
   let consumedUses = 0
   let recoverableHpFromFood = 0
@@ -147,6 +152,7 @@ export function calculateFoodRecovery(
       continue
     }
 
+    consumedFood[foodType] += consumedCount
     consumedUses += consumedCount
     recoverableHpFromFood +=
       consumedCount * maxHealth * (getFoodRestorePct(foodType, config) / 100)
@@ -154,6 +160,7 @@ export function calculateFoodRecovery(
   }
 
   return {
+    consumedFood,
     foodUsesAvailable: consumedUses,
     recoverableHpFromFood,
   }

@@ -9,6 +9,7 @@ import type {
 } from '../types'
 
 interface ManualPlayerCardProps {
+  battleHours: number
   battleBonusPct: number
   config: RuntimeConfig
   hoursAhead: number
@@ -26,6 +27,7 @@ function toNumber(value: string, fallback: number): number {
 }
 
 export function ManualPlayerCard({
+  battleHours,
   battleBonusPct,
   config,
   hoursAhead,
@@ -283,6 +285,7 @@ export function ManualPlayerCard({
       </div>
 
       <ProjectionSummary
+        battleHours={battleHours}
         battleBonusPct={battleBonusPct}
         config={config}
         hoursAhead={hoursAhead}

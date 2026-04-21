@@ -1,8 +1,11 @@
 import { useState } from 'react'
 
 interface BattleControlsProps {
+  battleHours: number
   battleBonusPct: number
   hoursAhead: number
+  pillBuffDurationHours: number
+  onBattleHoursChange: (value: number) => void
   onBattleBonusChange: (value: number) => void
   onHoursAheadChange: (value: number) => void
 }
@@ -13,8 +16,11 @@ function toNumber(value: string, fallback: number): number {
 }
 
 export function BattleControls({
+  battleHours,
   battleBonusPct,
   hoursAhead,
+  pillBuffDurationHours,
+  onBattleHoursChange,
   onBattleBonusChange,
   onHoursAheadChange,
 }: BattleControlsProps) {
@@ -47,7 +53,7 @@ export function BattleControls({
       </label>
 
       <label className="field-label slider-label">
-        <span>Future action timing: {hoursAhead}h</span>
+        <span>Prep time before action: {hoursAhead}h</span>
         <input
           className="range-input"
           max="10"
@@ -58,6 +64,23 @@ export function BattleControls({
           value={hoursAhead}
         />
       </label>
+
+      <label className="field-label slider-label">
+        <span>Battle window: {battleHours}h</span>
+        <input
+          className="range-input"
+          max={pillBuffDurationHours}
+          min="0"
+          onChange={(event) => onBattleHoursChange(Number(event.target.value))}
+          step="1"
+          type="range"
+          value={battleHours}
+        />
+      </label>
+
+      <div className="battle-window-summary">
+        Combined projection window: {hoursAhead + battleHours}h
+      </div>
     </div>
   )
 }

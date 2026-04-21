@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/country-wealth",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/country-wealth/",
+      "destination": "/index.html"
+    }
+  ]
+}

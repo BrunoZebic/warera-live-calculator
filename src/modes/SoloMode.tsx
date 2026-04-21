@@ -22,6 +22,7 @@ interface SoloModeProps {
 
 export function SoloMode({ config }: SoloModeProps) {
   const queryClient = useQueryClient()
+  const [battleHours, setBattleHours] = useState(0)
   const [battleBonusPct, setBattleBonusPct] = useState(0)
   const [hoursAhead, setHoursAhead] = useState(0)
   const [manualMode, setManualMode] = useState(false)
@@ -53,6 +54,7 @@ export function SoloMode({ config }: SoloModeProps) {
             foodType: current.foodType,
             foodInventory: current.foodInventory,
             attackModifier: current.attackModifier,
+            liveBaseSkillOverrides: current.liveBaseSkillOverrides,
           }
         }
 
@@ -74,10 +76,13 @@ export function SoloMode({ config }: SoloModeProps) {
           <SearchBox label="Player search" onSelect={handleSelect} />
 
           <BattleControls
+            battleHours={battleHours}
             battleBonusPct={battleBonusPct}
             hoursAhead={hoursAhead}
+            onBattleHoursChange={setBattleHours}
             onBattleBonusChange={setBattleBonusPct}
             onHoursAheadChange={setHoursAhead}
+            pillBuffDurationHours={config.pillBuffDurationHours}
           />
 
           <div className="panel simple-actions">
@@ -99,6 +104,7 @@ export function SoloMode({ config }: SoloModeProps) {
           {!loadingPlayer && liveSelection ? (
             <PlayerCard
               battleBonusPct={battleBonusPct}
+              battleHours={battleHours}
               config={config}
               hoursAhead={hoursAhead}
               onAmmoChange={(ammoType: AmmoType) =>
@@ -114,6 +120,11 @@ export function SoloMode({ config }: SoloModeProps) {
               onEquipmentRowsChange={(equipmentRows) =>
                 setLiveSelection((current) =>
                   current ? { ...current, equipmentRows } : current,
+                )
+              }
+              onLiveBaseSkillOverridesChange={(liveBaseSkillOverrides) =>
+                setLiveSelection((current) =>
+                  current ? { ...current, liveBaseSkillOverrides } : current,
                 )
               }
               onFoodInventoryChange={(foodInventory: FoodInventory) =>
@@ -139,10 +150,13 @@ export function SoloMode({ config }: SoloModeProps) {
       ) : (
         <>
           <BattleControls
+            battleHours={battleHours}
             battleBonusPct={battleBonusPct}
             hoursAhead={hoursAhead}
+            onBattleHoursChange={setBattleHours}
             onBattleBonusChange={setBattleBonusPct}
             onHoursAheadChange={setHoursAhead}
+            pillBuffDurationHours={config.pillBuffDurationHours}
           />
 
           <div className="panel simple-actions">
@@ -157,6 +171,7 @@ export function SoloMode({ config }: SoloModeProps) {
 
           <ManualPlayerCard
             battleBonusPct={battleBonusPct}
+            battleHours={battleHours}
             config={config}
             hoursAhead={hoursAhead}
             onAttackModifierChange={(attackModifier) =>

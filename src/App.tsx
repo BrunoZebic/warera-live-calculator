@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link, Navigate, Route, Routes } from 'react-router-dom'
 
 import './App.css'
 import { apiBaseUrl } from './api/client'
 import { getRuntimeConfig } from './api/gameConfig'
 import { GroupMode } from './modes/GroupMode'
 import { SoloMode } from './modes/SoloMode'
+import { CountryWealthPage } from './pages/CountryWealthPage'
 import type { AppMode, RuntimeConfig } from './types'
 
 const MODE_COPY: Record<
@@ -55,7 +57,7 @@ function getApiLabel() {
     : 'Custom API base'
 }
 
-function App() {
+function CalculatorPage() {
   const [mode, setMode] = useState<AppMode>('solo')
   const configQuery = useQuery({
     queryKey: ['runtime-config'],
@@ -88,7 +90,12 @@ function App() {
         </div>
 
         <div className="strip-meta">
-          <strong>{activeMode.title}</strong>
+          <div className="strip-title-row">
+            <strong>{activeMode.title}</strong>
+            <Link className="ghost-button admin-nav-button" to="/country-wealth">
+              Country wealth
+            </Link>
+          </div>
           <div className="hero-meta">
             <span className={`status-pill ${configStatus.toneClassName}`}>
               {configStatus.label}
@@ -117,6 +124,16 @@ function App() {
         </section>
       )}
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route element={<CalculatorPage />} path="/" />
+      <Route element={<CountryWealthPage />} path="/country-wealth" />
+      <Route element={<Navigate replace to="/" />} path="*" />
+    </Routes>
   )
 }
 

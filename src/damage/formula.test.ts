@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { calculateGroupProjection, calculatePlayerProjection } from './formula'
 import { projectFutureBars } from './projection'
 import { calculateFoodRecovery, createEmptyFoodInventory } from '../lib/players'
+import { getCombinedProjectionHours } from '../lib/projectionWindow'
 import type { CalcInput, RuntimeConfig } from '../types'
 
 const runtimeConfig: RuntimeConfig = {
@@ -14,6 +15,7 @@ const runtimeConfig: RuntimeConfig = {
     cookedFish: 20,
   },
   pillAttackBonusPct: 60,
+  pillBuffDurationHours: 8,
   itemMetaByCode: {},
   equipmentMetaBySlot: {
     weapon: [],
@@ -159,6 +161,11 @@ describe('calculateFoodRecovery', () => {
       runtimeConfig,
     )
 
+    expect(result.consumedFood).toEqual({
+      bread: 0,
+      steak: 2,
+      cookedFish: 1,
+    })
     expect(result.foodUsesAvailable).toBe(3)
     expect(result.recoverableHpFromFood).toBeCloseTo(50, 5)
   })
@@ -181,6 +188,24 @@ describe('projectFutureBars', () => {
 
     expect(projected.currentHealth).toBe(100)
     expect(projected.currentHunger).toBeCloseTo(4.8, 5)
+  })
+
+  it('uses the combined prep and battle window when projecting bars', () => {
+    const projected = projectFutureBars(
+      {
+        currentHealth: 20,
+        maxHealth: 100,
+        currentHunger: 1,
+        maxHunger: 7,
+        healthHourlyRegen: 10,
+        hungerHourlyRegen: 0.5,
+      },
+      getCombinedProjectionHours(3, runtimeConfig.pillBuffDurationHours),
+      runtimeConfig,
+    )
+
+    expect(projected.currentHealth).toBe(100)
+    expect(projected.currentHunger).toBeCloseTo(6.5, 5)
   })
 })
 

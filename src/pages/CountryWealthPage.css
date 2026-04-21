@@ -1,0 +1,125 @@
+.country-wealth-top-strip {
+  align-items: flex-start;
+}
+
+.country-wealth-header-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.country-wealth-header-copy p,
+.country-wealth-auth-form p,
+.country-wealth-auth-ready p {
+  color: var(--text-muted);
+  max-width: 58ch;
+}
+
+.country-wealth-auth-panel,
+.country-wealth-summary-panel,
+.country-wealth-table-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.country-wealth-auth-form,
+.country-wealth-auth-ready {
+  display: grid;
+  gap: 14px;
+}
+
+.country-wealth-auth-ready {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+}
+
+.country-wealth-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.country-wealth-warnings {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.country-wealth-warnings summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.country-wealth-warning-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-left: 20px;
+  color: var(--text-muted);
+}
+
+.country-wealth-table-wrap {
+  overflow-x: auto;
+}
+
+.country-wealth-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.country-wealth-table th,
+.country-wealth-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 56, 56, 0.08);
+  text-align: left;
+}
+
+.country-wealth-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.country-wealth-row-partial {
+  background: rgba(255, 128, 128, 0.04);
+}
+
+.country-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.country-cell small {
+  color: #ff9f9f;
+}
+
+.table-sort-button {
+  width: 100%;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  text-align: left;
+}
+
+.table-sort-button:hover,
+.table-sort-button:focus-visible,
+.table-sort-button-active {
+  color: #ffffff;
+  outline: none;
+}
+
+.table-sort-indicator {
+  color: #ff8f8f;
+}
+
+@media (max-width: 720px) {
+  .country-wealth-auth-ready,
+  .country-wealth-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -98,6 +98,15 @@ export interface LiveCombatBaseStats {
   dodgeBaseValue: number
 }
 
+export interface LiveBaseSkillOverrides {
+  attackBaseValue?: number
+  precisionBaseValue?: number
+  criticalChanceBaseValue?: number
+  critDamageBaseValue?: number
+  armorBaseValue?: number
+  dodgeBaseValue?: number
+}
+
 export interface SnapshotBase extends PlayerBars {
   id: string
   username: string
@@ -136,6 +145,7 @@ export interface RuntimeConfig {
   configSource: 'live' | 'cache' | 'fallback'
   foodRestorePct: Record<'bread' | 'steak' | 'cookedFish', number>
   pillAttackBonusPct: number
+  pillBuffDurationHours: number
   itemMetaByCode: Record<
     string,
     {
@@ -210,6 +220,27 @@ export interface GroupProjection {
   averageDamage: number
 }
 
+export type ProjectionAmmoUsage = Record<WeaponAmmoType, number>
+
+export interface EquipmentUsageRecord {
+  itemId: string
+  selectionKey: string
+  rowIndex: number
+  slot: EquipmentSlot
+  code: string
+  skills: EquipmentStatValues
+  state: number
+  maxState: number
+  durabilityUsed: number
+}
+
+export interface ProjectionResourceUsage {
+  ammoUsed: ProjectionAmmoUsage
+  foodUsed: FoodInventory
+  pillCount: number
+  equipmentUsed: EquipmentUsageRecord[]
+}
+
 export interface SearchResult {
   id: string
   username: string
@@ -223,6 +254,7 @@ export interface PlayerSelection {
   foodType: FoodType
   foodInventory?: FoodInventory
   attackModifier: AttackModifierMode
+  liveBaseSkillOverrides?: LiveBaseSkillOverrides
   equipmentRows?: EquipmentRow[]
   weaponAmmoLoadouts?: WeaponAmmoLoadout[]
 }

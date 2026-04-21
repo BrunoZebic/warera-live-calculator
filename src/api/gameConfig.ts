@@ -33,6 +33,7 @@ const FALLBACK_RUNTIME_CONFIG: RuntimeConfig = {
     cookedFish: 20,
   },
   pillAttackBonusPct: 60,
+  pillBuffDurationHours: 8,
   itemMetaByCode: {},
   equipmentMetaBySlot: createEmptyEquipmentMetaBySlot(),
   combatRules: {
@@ -70,6 +71,7 @@ type GameConfigItemLike = {
     healthRegen?: number
     healthRegenPercent?: number
     percentAttack?: number
+    buffDurationHours?: number
   }
 }
 
@@ -216,6 +218,9 @@ function toRuntimeConfig(
     pillAttackBonusPct:
       items.cocain?.flatStats?.percentAttack ??
       FALLBACK_RUNTIME_CONFIG.pillAttackBonusPct,
+    pillBuffDurationHours:
+      items.cocain?.flatStats?.buffDurationHours ??
+      FALLBACK_RUNTIME_CONFIG.pillBuffDurationHours,
     itemMetaByCode,
     equipmentMetaBySlot,
     combatRules: {
@@ -278,6 +283,9 @@ function readCachedConfig(): RuntimeConfig | null {
       },
       pillAttackBonusPct:
         parsed.pillAttackBonusPct ?? FALLBACK_RUNTIME_CONFIG.pillAttackBonusPct,
+      pillBuffDurationHours:
+        parsed.pillBuffDurationHours ??
+        FALLBACK_RUNTIME_CONFIG.pillBuffDurationHours,
       itemMetaByCode: {
         ...FALLBACK_RUNTIME_CONFIG.itemMetaByCode,
         ...parsed.itemMetaByCode,

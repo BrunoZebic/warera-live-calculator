@@ -8,17 +8,20 @@ import {
   getActiveAmmoType,
   normalizeWeaponAmmoLoadout,
 } from '../lib/equipmentRows'
-import { calculateFoodRecovery } from '../lib/players'
+import { calculateFoodRecovery, createEmptyFoodInventory } from '../lib/players'
 import type {
   AmmoType,
   CalcInput,
   DamageProjection,
   EquipmentCell,
+  EquipmentUsageRecord,
   EquipmentRow,
   EquipmentSlot,
   PlayerBars,
   PlayerSelection,
   PlayerSnapshot,
+  ProjectionAmmoUsage,
+  ProjectionResourceUsage,
   RuntimeConfig,
   WeaponAmmoLoadout,
 } from '../types'
@@ -35,6 +38,7 @@ export interface SelectionProjectionResult {
   openingInput: CalcInput
   openingProjection: DamageProjection
   projection: DamageProjection
+  resourceUsage: ProjectionResourceUsage
 }
 
 type ActiveEquipmentMap = Record<EquipmentSlot, EquipmentCell | null>
@@ -47,6 +51,10 @@ type WeaponAmmoTracker = {
   rowIndex: number
   remainingLoadout: WeaponAmmoLoadout
 } | null
+type CalcInputBuildResult = {
+  consumedFood: ReturnType<typeof createEmptyFoodInventory>
+  input: CalcInput
+}
 
 function clampPercent(value: number): number {
   return Math.min(100, Math.max(0, value))
@@ -69,6 +77,76 @@ function getCellSkillValue(
   key: keyof NonNullable<EquipmentCell['skills']>,
 ): number {
   return cell?.skills[key] ?? 0
+}
+
+function createEmptyAmmoUsage(): ProjectionAmmoUsage {
+  return {
+    lightAmmo: 0,
+    ammo: 0,
+    heavyAmmo: 0,
+  }
+}
+
+function createEmptyResourceUsage(
+  selection: PlayerSelection,
+): ProjectionResourceUsage {
+  return {
+    ammoUsed: createEmptyAmmoUsage(),
+    foodUsed: createEmptyFoodInventory(),
+    pillCount: selection.attackModifier === 'buff' ? 1 : 0,
+    equipmentUsed: [],
+  }
+}
+
+function buildEquipmentUsageItemId(
+  selectionKey: string,
+  rowIndex: number,
+  slot: EquipmentSlot,
+  cell: EquipmentCell,
+): string {
+  const skillSignature = Object.entries(cell.skills)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}:${value}`)
+    .join('|')
+
+  return `${selectionKey}:${rowIndex}:${slot}:${cell.code}:${cell.maxState}:${skillSignature}`
+}
+
+function recordEquipmentUsage(
+  usageByItemId: Map<string, EquipmentUsageRecord>,
+  selectionKey: string,
+  slot: EquipmentSlot,
+  tracker: NonNullable<EquipmentTracker>,
+  durabilityUsed: number,
+) {
+  if (durabilityUsed <= 0) {
+    return
+  }
+
+  const itemId = buildEquipmentUsageItemId(
+    selectionKey,
+    tracker.rowIndex,
+    slot,
+    tracker.cell,
+  )
+  const current = usageByItemId.get(itemId)
+
+  if (current) {
+    current.durabilityUsed += durabilityUsed
+    return
+  }
+
+  usageByItemId.set(itemId, {
+    itemId,
+    selectionKey,
+    rowIndex: tracker.rowIndex,
+    slot,
+    code: tracker.cell.code,
+    skills: { ...tracker.cell.skills },
+    state: tracker.cell.state,
+    maxState: tracker.cell.maxState,
+    durabilityUsed,
+  })
 }
 
 function getOpeningActiveEquipment(rows: EquipmentRow[]): ActiveEquipmentMap {
@@ -141,15 +219,40 @@ function buildBars(
   }
 }
 
+function getEffectiveLiveCombatBaseStats(
+  selection: PlayerSelection,
+  snapshot: PlayerSnapshot,
+) {
+  const overrides = selection.liveBaseSkillOverrides
+
+  return {
+    ...snapshot.liveCombatBase,
+    attackBaseValue:
+      overrides?.attackBaseValue ?? snapshot.liveCombatBase.attackBaseValue,
+    precisionBaseValue:
+      overrides?.precisionBaseValue ?? snapshot.liveCombatBase.precisionBaseValue,
+    criticalChanceBaseValue:
+      overrides?.criticalChanceBaseValue ??
+      snapshot.liveCombatBase.criticalChanceBaseValue,
+    critDamageBaseValue:
+      overrides?.critDamageBaseValue ?? snapshot.liveCombatBase.critDamageBaseValue,
+    armorBaseValue:
+      overrides?.armorBaseValue ?? snapshot.liveCombatBase.armorBaseValue,
+    dodgeBaseValue:
+      overrides?.dodgeBaseValue ?? snapshot.liveCombatBase.dodgeBaseValue,
+  }
+}
+
 function buildLiveCalcInput(
   snapshot: PlayerSnapshot,
   activeEquipment: ActiveEquipmentMap,
   ammoType: AmmoType,
   bars: PlayerBars,
   args: SelectionProjectionArgs,
-): CalcInput {
+): CalcInputBuildResult {
+  const liveCombatBase = getEffectiveLiveCombatBaseStats(args.selection, snapshot)
   const precisionRaw =
-    snapshot.liveCombatBase.precisionBaseValue +
+    liveCombatBase.precisionBaseValue +
     getCellSkillValue(activeEquipment.gloves, 'precision')
   const precisionPct = Math.min(100, precisionRaw)
   const precisionOverflowPoints = Math.max(0, precisionRaw - 100)
@@ -157,7 +260,7 @@ function buildLiveCalcInput(
     precisionOverflowPoints * args.config.combatRules.precisionOverflowValue
 
   const criticalChanceRaw =
-    snapshot.liveCombatBase.criticalChanceBaseValue +
+    liveCombatBase.criticalChanceBaseValue +
     getCellSkillValue(activeEquipment.weapon, 'criticalChance')
   const criticalChancePct = Math.min(100, criticalChanceRaw)
   const criticalChanceOverflowPoints = Math.max(0, criticalChanceRaw - 100)
@@ -166,22 +269,22 @@ function buildLiveCalcInput(
     args.config.combatRules.criticalChanceOverflowValue
 
   const critDamagePct =
-    snapshot.liveCombatBase.critDamageBaseValue +
+    liveCombatBase.critDamageBaseValue +
     getCellSkillValue(activeEquipment.helmet, 'criticalDamages') +
     criticalChanceOverflow
 
   const attackPreAmmo =
-    (snapshot.liveCombatBase.attackBaseValue +
+    (liveCombatBase.attackBaseValue +
       getCellSkillValue(activeEquipment.weapon, 'attack') +
       attackOverflow) *
-    snapshot.liveCombatBase.attackPercentMultiplier
+    liveCombatBase.attackPercentMultiplier
 
   const armorRaw =
-    snapshot.liveCombatBase.armorBaseValue +
+    liveCombatBase.armorBaseValue +
     getCellSkillValue(activeEquipment.chest, 'armor') +
     getCellSkillValue(activeEquipment.pants, 'armor')
   const dodgeRaw =
-    snapshot.liveCombatBase.dodgeBaseValue +
+    liveCombatBase.dodgeBaseValue +
     getCellSkillValue(activeEquipment.boots, 'dodge')
   const foodRecovery = calculateFoodRecovery(
     args.selection.foodInventory,
@@ -191,21 +294,24 @@ function buildLiveCalcInput(
   )
 
   return {
-    ...bars,
-    id: snapshot.id,
-    username: snapshot.username,
-    attackPreAmmo,
-    detectedAttackModifierPct: snapshot.detectedAttackModifierPct,
-    precisionPct,
-    criticalChancePct,
-    critDamagePct,
-    armorPct: applySoftCap(armorRaw, args.config.combatRules.armorSoftCap),
-    dodgePct: applySoftCap(dodgeRaw, args.config.combatRules.dodgeSoftCap),
-    battleBonusPct: args.battleBonusPct,
-    ammoType,
-    pillAttackBonusPct: args.pillAttackBonusPct,
-    foodUsesAvailable: foodRecovery.foodUsesAvailable,
-    recoverableHpFromFood: foodRecovery.recoverableHpFromFood,
+    consumedFood: foodRecovery.consumedFood,
+    input: {
+      ...bars,
+      id: snapshot.id,
+      username: snapshot.username,
+      attackPreAmmo,
+      detectedAttackModifierPct: snapshot.detectedAttackModifierPct,
+      precisionPct,
+      criticalChancePct,
+      critDamagePct,
+      armorPct: applySoftCap(armorRaw, args.config.combatRules.armorSoftCap),
+      dodgePct: applySoftCap(dodgeRaw, args.config.combatRules.dodgeSoftCap),
+      battleBonusPct: args.battleBonusPct,
+      ammoType,
+      pillAttackBonusPct: args.pillAttackBonusPct,
+      foodUsesAvailable: foodRecovery.foodUsesAvailable,
+      recoverableHpFromFood: foodRecovery.recoverableHpFromFood,
+    },
   }
 }
 
@@ -234,6 +340,7 @@ function calculateLiveEquipmentProjection(
 ): SelectionProjectionResult {
   const openingEquipment = getOpeningActiveEquipment(rows)
   const trackers = buildTrackers(rows)
+  const equipmentUsageByItemId = new Map<string, EquipmentUsageRecord>()
   let weaponAmmoTracker = buildWeaponAmmoTracker(
     weaponAmmoLoadouts,
     trackers.weapon,
@@ -242,14 +349,17 @@ function calculateLiveEquipmentProjection(
     ? getActiveAmmoType(weaponAmmoTracker.remainingLoadout)
     : 'none'
   const openingBars = buildBars(snapshot, args.barsOverride)
-  const openingInput = buildLiveCalcInput(
+  const openingBuild = buildLiveCalcInput(
     snapshot,
     openingEquipment,
     openingAmmoType,
     openingBars,
     args,
   )
+  const openingInput = openingBuild.input
   const openingProjection = calculatePlayerProjection(openingInput)
+  const resourceUsage = createEmptyResourceUsage(args.selection)
+  resourceUsage.foodUsed = openingBuild.consumedFood
   let remainingHealthPool = openingProjection.effectiveHealthPool
   let totalDamage = 0
   let totalAttempts = 0
@@ -260,13 +370,14 @@ function calculateLiveEquipmentProjection(
       ? getActiveAmmoType(weaponAmmoTracker.remainingLoadout)
       : 'none'
     const phaseBars = buildBars(snapshot, args.barsOverride)
-    const phaseInput = buildLiveCalcInput(
+    const phaseBuild = buildLiveCalcInput(
       snapshot,
       activeEquipment,
       activeAmmoType,
       phaseBars,
       args,
     )
+    const phaseInput = phaseBuild.input
     const phaseProjection = calculatePlayerProjection(phaseInput)
     const expectedHpLossPerAttempt = phaseProjection.expectedHpLossPerAttempt
 
@@ -320,6 +431,7 @@ function calculateLiveEquipmentProjection(
     remainingHealthPool -= phaseAttempts * expectedHpLossPerAttempt
 
     if (weaponAmmoTracker && activeAmmoType !== 'none') {
+      resourceUsage.ammoUsed[activeAmmoType] += phaseAttempts
       weaponAmmoTracker.remainingLoadout[activeAmmoType] = Math.max(
         0,
         weaponAmmoTracker.remainingLoadout[activeAmmoType] - phaseAttempts,
@@ -333,6 +445,17 @@ function calculateLiveEquipmentProjection(
       }
 
       const wearRate = slot === 'weapon' ? 1 : 1 - dodgeChance
+      const durabilityUsed = Math.min(
+        tracker.remainingState,
+        phaseAttempts * wearRate,
+      )
+      recordEquipmentUsage(
+        equipmentUsageByItemId,
+        args.selection.key,
+        slot,
+        tracker,
+        durabilityUsed,
+      )
       tracker.remainingState -= phaseAttempts * wearRate
 
       if (tracker.remainingState > 0) {
@@ -365,6 +488,10 @@ function calculateLiveEquipmentProjection(
       estimatedAttempts: totalAttempts,
       totalDamage,
     },
+    resourceUsage: {
+      ...resourceUsage,
+      equipmentUsed: [...equipmentUsageByItemId.values()],
+    },
   }
 }
 
@@ -396,6 +523,8 @@ export function calculateSelectionProjection(
     foodUsesAvailable: foodRecovery.foodUsesAvailable,
     recoverableHpFromFood: foodRecovery.recoverableHpFromFood,
   }
+  const resourceUsage = createEmptyResourceUsage(selection)
+  resourceUsage.foodUsed = foodRecovery.consumedFood
 
   if (
     selection.snapshot.source !== 'live' ||
@@ -403,10 +532,16 @@ export function calculateSelectionProjection(
     selection.equipmentRows.length === 0
   ) {
     const openingProjection = calculatePlayerProjection(openingInput)
+
+    if (selection.ammoType !== 'none') {
+      resourceUsage.ammoUsed[selection.ammoType] = openingProjection.estimatedAttempts
+    }
+
     return {
       openingInput,
       openingProjection,
       projection: openingProjection,
+      resourceUsage,
     }
   }
 

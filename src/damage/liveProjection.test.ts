@@ -26,6 +26,7 @@ const runtimeConfig: RuntimeConfig = {
     cookedFish: 20,
   },
   pillAttackBonusPct: 60,
+  pillBuffDurationHours: 8,
   itemMetaByCode: {},
   equipmentMetaBySlot: {
     weapon: [],
@@ -391,5 +392,163 @@ describe('calculateSelectionProjection', () => {
         standardOpening.expectedDamagePerAttempt,
       5,
     )
+    expect(result.resourceUsage.ammoUsed).toEqual({
+      lightAmmo: 0,
+      ammo: 1,
+      heavyAmmo: 1,
+    })
+  })
+
+  it('applies live base skill overrides before equipment bonuses and attack scaling', () => {
+    const selection = makeLiveSelection([
+      makeRow({
+        weapon: makeCell(lowWeaponMeta, { state: 100, isManual: false }),
+        gloves: makeCell(glovesMeta, { state: 100, isManual: false }),
+      }),
+    ], {
+      liveCombatBase: {
+        attackBaseValue: 100,
+        attackPercentMultiplier: 1.25,
+        precisionBaseValue: 50,
+        criticalChanceBaseValue: 10,
+        critDamageBaseValue: 100,
+        armorBaseValue: 0,
+        dodgeBaseValue: 0,
+      },
+    })
+    selection.liveBaseSkillOverrides = {
+      attackBaseValue: 120,
+      precisionBaseValue: 70,
+    }
+
+    const result = calculateSelectionProjection({
+      battleBonusPct: 0,
+      config: runtimeConfig,
+      pillAttackBonusPct: 0,
+      selection,
+    })
+
+    expect(result.openingInput.attackPreAmmo).toBeCloseTo(175, 5)
+    expect(result.openingInput.precisionPct).toBe(80)
+  })
+
+  it('tracks food, pill, and equipment usage for the shown projection', () => {
+    const selection = makeLiveSelection([
+      makeRow({
+        weapon: makeCell(lowWeaponMeta, { state: 2, isManual: false }),
+        gloves: makeCell(glovesMeta, { state: 100, isManual: false }),
+      }),
+    ], {
+      currentHealth: 20,
+      currentHunger: 3.8,
+      currentAmmoType: 'ammo',
+      dodgePct: 0,
+    }, [
+      {
+        ...createDefaultWeaponAmmoLoadout('ammo', 1),
+        heavyAmmo: 1,
+        ammo: 1,
+      },
+    ])
+    selection.attackModifier = 'buff'
+    selection.foodInventory = {
+      bread: 3,
+      steak: 2,
+      cookedFish: 1,
+    }
+
+    const result = calculateSelectionProjection({
+      battleBonusPct: 0,
+      config: runtimeConfig,
+      pillAttackBonusPct: runtimeConfig.pillAttackBonusPct,
+      selection,
+    })
+
+    expect(result.resourceUsage.foodUsed).toEqual({
+      bread: 0,
+      steak: 2,
+      cookedFish: 1,
+    })
+    expect(result.resourceUsage.pillCount).toBe(1)
+    expect(result.resourceUsage.equipmentUsed).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'knife',
+          durabilityUsed: 2,
+          rowIndex: 0,
+          slot: 'weapon',
+        }),
+      ]),
+    )
+  })
+
+  it('reports durability usage across backup rows without dropping active armor slots', () => {
+    const rowOne = makeRow({
+      weapon: makeCell(lowWeaponMeta, { state: 1, isManual: false }),
+      gloves: makeCell(glovesMeta, { state: 100, isManual: false }),
+    })
+    const rowTwo = makeRow({
+      weapon: makeCell(highWeaponMeta, { state: 2, isManual: false }),
+    })
+
+    const result = calculateSelectionProjection({
+      battleBonusPct: 0,
+      config: runtimeConfig,
+      pillAttackBonusPct: 0,
+      selection: makeLiveSelection(
+        [rowOne, rowTwo],
+        {
+          currentHealth: 30,
+          dodgePct: 0,
+        },
+      ),
+    })
+
+    expect(result.resourceUsage.equipmentUsed).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'knife',
+          durabilityUsed: 1,
+          rowIndex: 0,
+          slot: 'weapon',
+        }),
+        expect.objectContaining({
+          code: 'sniper',
+          durabilityUsed: 2,
+          rowIndex: 1,
+          slot: 'weapon',
+        }),
+        expect.objectContaining({
+          code: 'gloves3',
+          durabilityUsed: 3,
+          rowIndex: 0,
+          slot: 'gloves',
+        }),
+      ]),
+    )
+  })
+
+  it('counts only buff mode as a pill spend', () => {
+    const buffSelection = makeLiveSelection([createEmptyEquipmentRow()])
+    buffSelection.attackModifier = 'buff'
+    const debuffSelection = makeLiveSelection([createEmptyEquipmentRow()])
+    debuffSelection.attackModifier = 'debuff'
+
+    expect(
+      calculateSelectionProjection({
+        battleBonusPct: 0,
+        config: runtimeConfig,
+        pillAttackBonusPct: runtimeConfig.pillAttackBonusPct,
+        selection: buffSelection,
+      }).resourceUsage.pillCount,
+    ).toBe(1)
+    expect(
+      calculateSelectionProjection({
+        battleBonusPct: 0,
+        config: runtimeConfig,
+        pillAttackBonusPct: -runtimeConfig.pillAttackBonusPct,
+        selection: debuffSelection,
+      }).resourceUsage.pillCount,
+    ).toBe(0)
   })
 })

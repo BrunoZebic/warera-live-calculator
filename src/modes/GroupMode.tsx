@@ -23,6 +23,7 @@ interface GroupModeProps {
 
 export function GroupMode({ config }: GroupModeProps) {
   const queryClient = useQueryClient()
+  const [battleHours, setBattleHours] = useState(0)
   const [battleBonusPct, setBattleBonusPct] = useState(0)
   const [hoursAhead, setHoursAhead] = useState(0)
   const [players, setPlayers] = useState<PlayerSelection[]>([])
@@ -59,10 +60,13 @@ export function GroupMode({ config }: GroupModeProps) {
       <SearchBox label="Add live player" onSelect={handleAddPlayer} />
 
       <BattleControls
+        battleHours={battleHours}
         battleBonusPct={battleBonusPct}
         hoursAhead={hoursAhead}
+        onBattleHoursChange={setBattleHours}
         onBattleBonusChange={setBattleBonusPct}
         onHoursAheadChange={setHoursAhead}
+        pillBuffDurationHours={config.pillBuffDurationHours}
       />
 
       <div className="panel simple-actions">
@@ -85,6 +89,7 @@ export function GroupMode({ config }: GroupModeProps) {
 
       {players.length > 0 ? (
         <GroupSummary
+          battleHours={battleHours}
           battleBonusPct={battleBonusPct}
           config={config}
           hoursAhead={hoursAhead}
@@ -102,6 +107,7 @@ export function GroupMode({ config }: GroupModeProps) {
           selection.snapshot.source === 'live' ? (
             <PlayerCard
               battleBonusPct={battleBonusPct}
+              battleHours={battleHours}
               config={config}
               hoursAhead={hoursAhead}
               key={selection.key}
@@ -126,6 +132,15 @@ export function GroupMode({ config }: GroupModeProps) {
                   current.map((entry) =>
                     entry.key === selection.key
                       ? { ...entry, equipmentRows }
+                      : entry,
+                  ),
+                )
+              }
+              onLiveBaseSkillOverridesChange={(liveBaseSkillOverrides) =>
+                setPlayers((current) =>
+                  current.map((entry) =>
+                    entry.key === selection.key
+                      ? { ...entry, liveBaseSkillOverrides }
                       : entry,
                   ),
                 )
@@ -158,6 +173,7 @@ export function GroupMode({ config }: GroupModeProps) {
           ) : (
             <ManualPlayerCard
               battleBonusPct={battleBonusPct}
+              battleHours={battleHours}
               config={config}
               hoursAhead={hoursAhead}
               key={selection.key}

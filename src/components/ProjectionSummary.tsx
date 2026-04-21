@@ -4,6 +4,7 @@ import {
 } from '../damage/constants'
 import { calculateSelectionProjection } from '../damage/liveProjection'
 import { FoodInventoryEditor } from './FoodInventoryEditor'
+import { SpendEstimateControl } from './SpendEstimateControl'
 import { projectFutureBars } from '../damage/projection'
 import {
   createEmptyFoodInventory,
@@ -12,6 +13,10 @@ import {
   formatPreciseNumber,
   getSelectedPillAttackPct,
 } from '../lib/players'
+import {
+  formatProjectionWindow,
+  getCombinedProjectionHours,
+} from '../lib/projectionWindow'
 import type {
   AmmoType,
   AttackModifierMode,
@@ -21,6 +26,7 @@ import type {
 } from '../types'
 
 interface ProjectionSummaryProps {
+  battleHours: number
   battleBonusPct: number
   config: RuntimeConfig
   hoursAhead: number
@@ -31,6 +37,7 @@ interface ProjectionSummaryProps {
 }
 
 export function ProjectionSummary({
+  battleHours,
   battleBonusPct,
   config,
   hoursAhead,
@@ -50,7 +57,13 @@ export function ProjectionSummary({
     pillAttackBonusPct: selectedPillAttackPct,
     selection,
   })
-  const futureBars = projectFutureBars(selection.snapshot, hoursAhead, config)
+  const totalProjectionHours = getCombinedProjectionHours(hoursAhead, battleHours)
+  const projectionWindow = formatProjectionWindow(hoursAhead, battleHours)
+  const futureBars = projectFutureBars(
+    selection.snapshot,
+    totalProjectionHours,
+    config,
+  )
   const futureResult = calculateSelectionProjection({
     battleBonusPct,
     barsOverride: futureBars,
@@ -61,12 +74,13 @@ export function ProjectionSummary({
   const currentProjection = currentResult.projection
   const futureProjection = futureResult.projection
   const openingProjection = currentResult.openingProjection
-  const showFutureAsPrimary = hoursAhead > 0
+  const showFutureAsPrimary = totalProjectionHours > 0
+  const primaryResult = showFutureAsPrimary ? futureResult : currentResult
   const primaryProjection = showFutureAsPrimary
     ? futureProjection
     : currentProjection
   const primaryLabel = showFutureAsPrimary
-    ? `Total damage in ${hoursAhead}h`
+    ? `Total damage after ${projectionWindow}`
     : 'Total damage now'
   const showAmmoSelector = selection.snapshot.source !== 'live'
   const foodInventory = selection.foodInventory ?? createEmptyFoodInventory()
@@ -109,7 +123,10 @@ export function ProjectionSummary({
 
       <div className="result-layout">
         <div className="damage-hero-card">
-          <span>{primaryLabel}</span>
+          <div className="damage-hero-header">
+            <span>{primaryLabel}</span>
+            <SpendEstimateControl resourceUsage={primaryResult.resourceUsage} />
+          </div>
           <strong>{formatCompactNumber(primaryProjection.totalDamage)}</strong>
           <small>
             {formatPreciseNumber(primaryProjection.estimatedAttempts)}{' '}
@@ -119,6 +136,7 @@ export function ProjectionSummary({
             {showFutureAsPrimary ? (
               <>
                 <span>Now: {formatCompactNumber(currentProjection.totalDamage)}</span>
+                <span>Window: {projectionWindow}</span>
                 <span>
                   {formatPreciseNumber(currentProjection.estimatedAttempts)} attempts now
                 </span>
@@ -174,10 +192,12 @@ export function ProjectionSummary({
         <span>
           Health pool now: {formatPreciseNumber(currentProjection.effectiveHealthPool)}
         </span>
-        <span>
-          Health pool in {hoursAhead}h:{' '}
-          {formatPreciseNumber(futureProjection.effectiveHealthPool)}
-        </span>
+        {showFutureAsPrimary ? (
+          <span>
+            Health pool after {projectionWindow}:{' '}
+            {formatPreciseNumber(futureProjection.effectiveHealthPool)}
+          </span>
+        ) : null}
         <span>
           Food restores now: {formatPreciseNumber(currentProjection.recoverableHpFromFood)} HP
         </span>
@@ -185,15 +205,21 @@ export function ProjectionSummary({
 
       <div className="projection-footnote">
         <span>Food uses now: {currentProjection.foodUsesAvailable}</span>
-        <span>Food uses in {hoursAhead}h: {futureProjection.foodUsesAvailable}</span>
+        {showFutureAsPrimary ? (
+          <span>
+            Food uses after {projectionWindow}: {futureProjection.foodUsesAvailable}
+          </span>
+        ) : null}
         <span>
           Current bars: {formatPreciseNumber(selection.snapshot.currentHealth)} HP /{' '}
           {formatPreciseNumber(selection.snapshot.currentHunger)} hunger
         </span>
-        <span>
-          Projected bars: {formatPreciseNumber(futureBars.currentHealth)} HP /{' '}
-          {formatPreciseNumber(futureBars.currentHunger)} hunger
-        </span>
+        {showFutureAsPrimary ? (
+          <span>
+            Bars after {projectionWindow}: {formatPreciseNumber(futureBars.currentHealth)} HP /{' '}
+            {formatPreciseNumber(futureBars.currentHunger)} hunger
+          </span>
+        ) : null}
       </div>
     </div>
   )

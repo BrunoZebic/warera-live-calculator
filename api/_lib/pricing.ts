@@ -1,4 +1,3 @@
-import { get, put } from '@vercel/blob'
 import {
   createAPIClient,
   type GameConfigGetGameConfigResponse,
@@ -77,6 +76,10 @@ function hasBlobStorage() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN)
 }
 
+async function getBlobClient() {
+  return import('@vercel/blob')
+}
+
 async function mapInBatches<T, R>(
   items: T[],
   batchSize: number,
@@ -100,6 +103,7 @@ async function readBlobCache<TValue>(path: string): Promise<CacheEntry<TValue> |
   }
 
   try {
+    const { get } = await getBlobClient()
     const result = await get(path, {
       access: BLOB_ACCESS,
     })
@@ -128,6 +132,7 @@ async function writeBlobCache<TValue>(
   }
 
   try {
+    const { put } = await getBlobClient()
     await put(path, JSON.stringify(entry), {
       access: BLOB_ACCESS,
       allowOverwrite: true,

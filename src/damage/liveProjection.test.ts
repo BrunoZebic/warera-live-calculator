@@ -60,8 +60,8 @@ const runtimeConfig: RuntimeConfig = {
     dodgePct: 0,
   },
   skillLevelValues: {
-    attack: { 0: 100, 20: 120 },
-    precision: { 0: 50, 20: 70 },
+    attack: { 0: 100, 4: 120 },
+    precision: { 0: 50, 4: 70 },
     criticalChance: { 0: 10 },
     criticalDamages: { 0: 100 },
     armor: { 0: 0 },
@@ -462,8 +462,8 @@ describe('calculateSelectionProjection', () => {
     })
     selection.liveSkillOverrides = {
       skillLevels: {
-        attack: 20,
-        precision: 20,
+        attack: 4,
+        precision: 4,
       },
     }
 

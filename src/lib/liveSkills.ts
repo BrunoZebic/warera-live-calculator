@@ -25,6 +25,8 @@ export interface ResolvedLiveSkillPlan {
   totalSkillPoints: number
 }
 
+export const MAX_LIVE_SKILL_LEVEL = 10
+
 export const LIVE_SKILL_KEYS: LiveSkillKey[] = [
   'attack',
   'precision',
@@ -117,13 +119,17 @@ function normalizeWholeNumber(value: number, fallback = 0): number {
   return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback
 }
 
+function normalizeSkillLevel(value: number, fallback = 0): number {
+  return Math.min(MAX_LIVE_SKILL_LEVEL, normalizeWholeNumber(value, fallback))
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
 function getSnapshotSkillLevels(liveSkills: LiveSkillMap): LiveSkillLevelMap {
   return LIVE_SKILL_KEYS.reduce<LiveSkillLevelMap>((accumulator, key) => {
-    accumulator[key] = normalizeWholeNumber(liveSkills[key].level)
+    accumulator[key] = normalizeSkillLevel(liveSkills[key].level)
     return accumulator
   }, createEmptySkillLevelMap())
 }
@@ -158,16 +164,16 @@ function getConfiguredSkillValue(
 }
 
 export function calculateSkillPointCost(level: number): number {
-  const normalizedLevel = normalizeWholeNumber(level)
+  const normalizedLevel = normalizeSkillLevel(level)
   return (normalizedLevel * (normalizedLevel + 1)) / 2
 }
 
 export function getSkillIncrementCost(currentLevel: number): number {
-  return normalizeWholeNumber(currentLevel) + 1
+  return normalizeSkillLevel(currentLevel) + 1
 }
 
 export function getSkillRefund(currentLevel: number): number {
-  return normalizeWholeNumber(currentLevel)
+  return normalizeSkillLevel(currentLevel)
 }
 
 export function formatSkillEffectValue(
@@ -217,7 +223,7 @@ export function resolveLiveSkillPlan(
   const liveSkillValues = getSnapshotSkillValues(snapshot.liveSkills)
   const playerLevel = normalizeWholeNumber(overrides?.playerLevel ?? snapshot.level)
   const skillLevels = LIVE_SKILL_KEYS.reduce<LiveSkillLevelMap>((accumulator, key) => {
-    accumulator[key] = normalizeWholeNumber(
+    accumulator[key] = normalizeSkillLevel(
       overrides?.skillLevels?.[key] ?? liveSkillLevels[key],
       liveSkillLevels[key],
     )

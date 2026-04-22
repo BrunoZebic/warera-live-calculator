@@ -174,13 +174,19 @@
 .controls-panel {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
 }
 
 .battle-window-summary {
   grid-column: 1 / -1;
   color: var(--text-muted);
   font-size: 0.84rem;
+}
+
+.battle-controls-time-stack {
+  display: grid;
+  gap: 12px;
 }
 
 .range-input {
@@ -473,7 +479,12 @@
 
 .live-skill-row {
   display: grid;
-  grid-template-columns: minmax(140px, 1.15fr) minmax(110px, 0.9fr) auto minmax(132px, 0.95fr);
+  grid-template-columns:
+    minmax(140px, 1.05fr)
+    minmax(110px, 0.8fr)
+    minmax(180px, 1fr)
+    auto
+    minmax(132px, 0.95fr);
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -492,6 +503,37 @@
 .live-skill-row-value strong {
   font-size: 1.16rem;
   line-height: 1;
+}
+
+.live-skill-row-meter {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+
+.live-skill-pip {
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(29, 29, 31, 0.95), rgba(14, 14, 16, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.live-skill-pip-active {
+  border-color: rgba(255, 162, 115, 0.48);
+  background:
+    linear-gradient(135deg, rgba(255, 204, 153, 0.18), rgba(0, 0, 0, 0) 60%),
+    linear-gradient(180deg, #b5653a, #76411f);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 233, 208, 0.24),
+    0 0 0 1px rgba(255, 119, 48, 0.06);
+}
+
+.live-skill-pip-active:nth-child(odd) {
+  background:
+    linear-gradient(135deg, rgba(255, 214, 176, 0.22), rgba(0, 0, 0, 0) 58%),
+    linear-gradient(180deg, #c27346, #824723);
 }
 
 .live-skill-row-controls {
@@ -1459,6 +1501,10 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
+  .live-skill-row-meter {
+    grid-column: 1 / -1;
+  }
+
   .live-skill-row-controls,
   .live-skill-row-costs {
     justify-self: end;
@@ -1500,6 +1546,14 @@
   .live-skill-budget-grid,
   .live-skill-row {
     grid-template-columns: 1fr;
+  }
+
+  .battle-controls-time-stack {
+    grid-column: auto;
+  }
+
+  .live-skill-row-meter {
+    grid-column: auto;
   }
 
   .live-skill-row-controls,

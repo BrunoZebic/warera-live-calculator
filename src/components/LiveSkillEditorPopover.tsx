@@ -5,6 +5,7 @@ import {
   getSkillRefund,
   LIVE_SKILL_GROUPS,
   LIVE_SKILL_LABELS,
+  MAX_LIVE_SKILL_LEVEL,
   resolveLiveSkillPlan,
 } from '../lib/liveSkills'
 import { formatPreciseNumber } from '../lib/players'
@@ -86,6 +87,10 @@ export function LiveSkillEditorPopover({
         ...plan.skillLevels,
         [key]: currentLevel - 1,
       })
+      return
+    }
+
+    if (currentLevel >= MAX_LIVE_SKILL_LEVEL) {
       return
     }
 
@@ -182,6 +187,9 @@ export function LiveSkillEditorPopover({
                 const liveSkill = snapshot.liveSkills[key]
                 const nextCost = getSkillIncrementCost(currentLevel)
                 const refund = getSkillRefund(currentLevel)
+                const canIncrease =
+                  currentLevel < MAX_LIVE_SKILL_LEVEL &&
+                  plan.availableSkillPoints >= nextCost
                 const companyCopy =
                   key === 'companies'
                     ? getCompanyDeltaCopy(currentValue, liveSkill.value)
@@ -192,7 +200,7 @@ export function LiveSkillEditorPopover({
                     <div className="live-skill-row-copy">
                       <strong>{LIVE_SKILL_LABELS[key]}</strong>
                       <small>
-                        Lv {currentLevel} now
+                        Lv {currentLevel}/{MAX_LIVE_SKILL_LEVEL}
                         {companyCopy ? ` - ${companyCopy}` : ''}
                       </small>
                     </div>
@@ -202,6 +210,19 @@ export function LiveSkillEditorPopover({
                       <small>
                         Live {formatSkillEffectValue(key, liveSkill.value)}
                       </small>
+                    </div>
+
+                    <div className="live-skill-row-meter" aria-hidden="true">
+                      {Array.from({ length: MAX_LIVE_SKILL_LEVEL }, (_, index) => (
+                        <span
+                          className={`live-skill-pip ${
+                            index < currentLevel
+                              ? 'live-skill-pip-active'
+                              : ''
+                          }`}
+                          key={`${key}-${index}`}
+                        />
+                      ))}
                     </div>
 
                     <div className="live-skill-row-controls">
@@ -215,7 +236,7 @@ export function LiveSkillEditorPopover({
                       </button>
                       <button
                         className="ghost-button live-skill-step-button"
-                        disabled={plan.availableSkillPoints < nextCost}
+                        disabled={!canIncrease}
                         onClick={() => handleSkillStep(key, 1)}
                         type="button"
                       >
@@ -224,7 +245,11 @@ export function LiveSkillEditorPopover({
                     </div>
 
                     <div className="live-skill-row-costs">
-                      <small>Next + costs {nextCost} SP</small>
+                      <small>
+                        {currentLevel >= MAX_LIVE_SKILL_LEVEL
+                          ? 'Skill maxed'
+                          : `Next + costs ${nextCost} SP`}
+                      </small>
                       <small>- refunds {refund} SP</small>
                     </div>
                   </div>

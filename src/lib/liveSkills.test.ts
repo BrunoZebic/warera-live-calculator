@@ -187,6 +187,35 @@ describe('resolveLiveSkillPlan', () => {
     expect(plan.bars.currentHunger).toBe(3)
     expect(plan.bars.hungerHourlyRegen).toBeCloseTo(0.6, 5)
   })
+
+  it('caps planned skills at level 10', () => {
+    const snapshot = makeSnapshot({
+      liveSkills: makeLiveSkills({
+        attack: { level: 10, value: 110 },
+      }),
+      liveCombatBase: {
+        attackBaseValue: 110,
+        attackPercentMultiplier: 1,
+        precisionBaseValue: 50,
+        criticalChanceBaseValue: 10,
+        critDamageBaseValue: 100,
+        armorBaseValue: 0,
+        dodgeBaseValue: 0,
+      },
+    })
+
+    const plan = resolveLiveSkillPlan(
+      snapshot,
+      {
+        skillLevels: {
+          attack: 14,
+        },
+      },
+      runtimeConfig,
+    )
+
+    expect(plan.skillLevels.attack).toBe(10)
+  })
 })
 
 describe('buildLiveSkillOverrides', () => {

@@ -111,7 +111,7 @@ describe('mergeSelectionWithSnapshot', () => {
       foodType: 'bread',
       liveSkillOverrides: {
         skillLevels: {
-          attack: 25,
+          attack: 4,
         },
       },
       equipmentRows: editedRows,
@@ -146,7 +146,7 @@ describe('mergeSelectionWithSnapshot', () => {
     expect(merged.foodType).toBe('bread')
     expect(merged.liveSkillOverrides).toEqual({
       skillLevels: {
-        attack: 25,
+        attack: 4,
       },
     })
     expect(merged.equipmentRows).toBe(editedRows)
@@ -168,7 +168,7 @@ describe('mergeSelectionWithSnapshot', () => {
         attackModifier: 'buff',
         liveSkillOverrides: {
           skillLevels: {
-            attack: 30,
+            attack: 5,
           },
         },
       },

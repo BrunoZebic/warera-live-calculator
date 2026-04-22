@@ -54,33 +54,35 @@ export function BattleControls({
         />
       </label>
 
-      <label className="field-label slider-label">
-        <span>Prep time before action: {prepHours}h</span>
-        <input
-          className="range-input"
-          max="10"
-          min="0"
-          onChange={(event) => onPrepHoursChange(Number(event.target.value))}
-          step="1"
-          type="range"
-          value={prepHours}
-        />
-      </label>
+      <div className="battle-controls-time-stack">
+        <label className="field-label slider-label">
+          <span>Prep time before action: {prepHours}h</span>
+          <input
+            className="range-input"
+            max="10"
+            min="0"
+            onChange={(event) => onPrepHoursChange(Number(event.target.value))}
+            step="1"
+            type="range"
+            value={prepHours}
+          />
+        </label>
 
-      <label className="field-label slider-label">
-        <span>Follow-up recovery window: {followupRecoveryHours}h</span>
-        <input
-          className="range-input"
-          max={pillBuffDurationHours}
-          min="0"
-          onChange={(event) =>
-            onFollowupRecoveryHoursChange(Number(event.target.value))
-          }
-          step="1"
-          type="range"
-          value={followupRecoveryHours}
-        />
-      </label>
+        <label className="field-label slider-label">
+          <span>Follow-up recovery window: {followupRecoveryHours}h</span>
+          <input
+            className="range-input"
+            max={pillBuffDurationHours}
+            min="0"
+            onChange={(event) =>
+              onFollowupRecoveryHoursChange(Number(event.target.value))
+            }
+            step="1"
+            type="range"
+            value={followupRecoveryHours}
+          />
+        </label>
+      </div>
 
       <div className="battle-window-summary">
         Projection window: {formatProjectionWindow(prepHours, followupRecoveryHours)}

@@ -4,25 +4,30 @@ function normalizeWindowHours(value: number): number {
 
 export function getCombinedProjectionHours(
   prepHours: number,
-  battleHours: number,
+  followupRecoveryHours: number,
 ): number {
-  return normalizeWindowHours(prepHours) + normalizeWindowHours(battleHours)
+  return normalizeWindowHours(prepHours) + normalizeWindowHours(followupRecoveryHours)
 }
 
-export function formatProjectionWindow(prepHours: number, battleHours: number) {
+export function formatProjectionWindow(
+  prepHours: number,
+  followupRecoveryHours: number,
+) {
   const normalizedPrepHours = normalizeWindowHours(prepHours)
-  const normalizedBattleHours = normalizeWindowHours(battleHours)
+  const normalizedFollowupRecoveryHours = normalizeWindowHours(
+    followupRecoveryHours,
+  )
 
-  if (normalizedPrepHours > 0 && normalizedBattleHours > 0) {
-    return `${normalizedPrepHours}h prep + ${normalizedBattleHours}h battle`
+  if (normalizedPrepHours > 0 && normalizedFollowupRecoveryHours > 0) {
+    return `${normalizedPrepHours}h prep + ${normalizedFollowupRecoveryHours}h recovery`
   }
 
   if (normalizedPrepHours > 0) {
     return `${normalizedPrepHours}h prep`
   }
 
-  if (normalizedBattleHours > 0) {
-    return `${normalizedBattleHours}h battle`
+  if (normalizedFollowupRecoveryHours > 0) {
+    return `${normalizedFollowupRecoveryHours}h recovery`
   }
 
   return 'now'

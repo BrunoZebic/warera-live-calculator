@@ -1,16 +1,12 @@
-import {
-  AMMO_LABELS,
-  MINIMUM_BATTLE_HEALTH,
-} from '../damage/constants'
+import { MINIMUM_BATTLE_HEALTH } from '../damage/constants'
 import { calculateSelectionProjection } from '../damage/liveProjection'
+import { projectFutureBarsAdditive } from '../damage/projection'
 import { FoodInventoryEditor } from './FoodInventoryEditor'
-import { SpendEstimateControl } from './SpendEstimateControl'
-import { projectFutureBars } from '../damage/projection'
 import {
   createEmptyFoodInventory,
-  getAttackModifierPct,
   formatCompactNumber,
   formatPreciseNumber,
+  getAttackModifierPct,
   getSelectedPillAttackPct,
 } from '../lib/players'
 import {
@@ -18,7 +14,6 @@ import {
   getCombinedProjectionHours,
 } from '../lib/projectionWindow'
 import type {
-  AmmoType,
   AttackModifierMode,
   FoodInventory,
   PlayerSelection,
@@ -26,24 +21,22 @@ import type {
 } from '../types'
 
 interface ProjectionSummaryProps {
-  battleHours: number
   battleBonusPct: number
   config: RuntimeConfig
-  hoursAhead: number
+  followupRecoveryHours: number
   onAttackModifierChange: (attackModifier: AttackModifierMode) => void
-  onAmmoChange: (ammoType: AmmoType) => void
   onFoodInventoryChange: (foodInventory: FoodInventory) => void
+  prepHours: number
   selection: PlayerSelection
 }
 
 export function ProjectionSummary({
-  battleHours,
   battleBonusPct,
   config,
-  hoursAhead,
+  followupRecoveryHours,
   onAttackModifierChange,
-  onAmmoChange,
   onFoodInventoryChange,
+  prepHours,
   selection,
 }: ProjectionSummaryProps) {
   const selectedPillAttackPct = getSelectedPillAttackPct(selection, config)
@@ -57,11 +50,18 @@ export function ProjectionSummary({
     pillAttackBonusPct: selectedPillAttackPct,
     selection,
   })
-  const totalProjectionHours = getCombinedProjectionHours(hoursAhead, battleHours)
-  const projectionWindow = formatProjectionWindow(hoursAhead, battleHours)
-  const futureBars = projectFutureBars(
+  const totalProjectionHours = getCombinedProjectionHours(
+    prepHours,
+    followupRecoveryHours,
+  )
+  const projectionWindow = formatProjectionWindow(
+    prepHours,
+    followupRecoveryHours,
+  )
+  const futureBars = projectFutureBarsAdditive(
     selection.snapshot,
-    totalProjectionHours,
+    prepHours,
+    followupRecoveryHours,
     config,
   )
   const futureResult = calculateSelectionProjection({
@@ -75,14 +75,12 @@ export function ProjectionSummary({
   const futureProjection = futureResult.projection
   const openingProjection = currentResult.openingProjection
   const showFutureAsPrimary = totalProjectionHours > 0
-  const primaryResult = showFutureAsPrimary ? futureResult : currentResult
   const primaryProjection = showFutureAsPrimary
     ? futureProjection
     : currentProjection
   const primaryLabel = showFutureAsPrimary
     ? `Total damage after ${projectionWindow}`
     : 'Total damage now'
-  const showAmmoSelector = selection.snapshot.source !== 'live'
   const foodInventory = selection.foodInventory ?? createEmptyFoodInventory()
   const displayedHunger = showFutureAsPrimary
     ? futureBars.currentHunger
@@ -90,27 +88,6 @@ export function ProjectionSummary({
 
   return (
     <div className="projection-summary">
-      {showAmmoSelector ? (
-        <div className="picker-grid">
-          <label className="field-label">
-            <span>Ammo type</span>
-            <select
-              className="select-input"
-              onChange={(event) => onAmmoChange(event.target.value as AmmoType)}
-              value={selection.ammoType}
-            >
-              {(
-                Object.entries(AMMO_LABELS) as Array<[AmmoType, string]>
-              ).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      ) : null}
-
       <FoodInventoryEditor
         attackModifier={selection.attackModifier}
         buffAttackPct={buffAttackPct}
@@ -125,7 +102,6 @@ export function ProjectionSummary({
         <div className="damage-hero-card">
           <div className="damage-hero-header">
             <span>{primaryLabel}</span>
-            <SpendEstimateControl resourceUsage={primaryResult.resourceUsage} />
           </div>
           <strong>{formatCompactNumber(primaryProjection.totalDamage)}</strong>
           <small>

@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { calculateGroupProjection, calculatePlayerProjection } from './formula'
-import { projectFutureBars } from './projection'
+import { projectFutureBars, projectFutureBarsAdditive } from './projection'
 import { calculateFoodRecovery, createEmptyFoodInventory } from '../lib/players'
-import { getCombinedProjectionHours } from '../lib/projectionWindow'
 import type { CalcInput, RuntimeConfig } from '../types'
 
 const runtimeConfig: RuntimeConfig = {
@@ -189,9 +188,26 @@ describe('projectFutureBars', () => {
     expect(projected.currentHealth).toBe(100)
     expect(projected.currentHunger).toBeCloseTo(4.8, 5)
   })
+})
 
-  it('uses the combined prep and battle window when projecting bars', () => {
-    const projected = projectFutureBars(
+describe('projectFutureBarsAdditive', () => {
+  it('matches the clamped prep projection when follow-up recovery is zero', () => {
+    const bars = {
+      currentHealth: 20,
+      maxHealth: 100,
+      currentHunger: 1,
+      maxHunger: 7,
+      healthHourlyRegen: 10,
+      hungerHourlyRegen: 0.5,
+    }
+
+    expect(projectFutureBarsAdditive(bars, 3, 0, runtimeConfig)).toEqual(
+      projectFutureBars(bars, 3, runtimeConfig),
+    )
+  })
+
+  it('adds uncapped follow-up recovery on top of the current bars', () => {
+    const projected = projectFutureBarsAdditive(
       {
         currentHealth: 20,
         maxHealth: 100,
@@ -200,12 +216,73 @@ describe('projectFutureBars', () => {
         healthHourlyRegen: 10,
         hungerHourlyRegen: 0.5,
       },
-      getCombinedProjectionHours(3, runtimeConfig.pillBuffDurationHours),
+      0,
+      5,
       runtimeConfig,
     )
 
-    expect(projected.currentHealth).toBe(100)
-    expect(projected.currentHunger).toBeCloseTo(6.5, 5)
+    expect(projected.currentHealth).toBe(70)
+    expect(projected.currentHunger).toBeCloseTo(3.5, 5)
+  })
+
+  it('saturates the prep portion at max bars and then adds follow-up recovery above max', () => {
+    const projected = projectFutureBarsAdditive(
+      {
+        currentHealth: 20,
+        maxHealth: 100,
+        currentHunger: 1,
+        maxHunger: 7,
+        healthHourlyRegen: 10,
+        hungerHourlyRegen: 0.5,
+      },
+      10,
+      8,
+      runtimeConfig,
+    )
+
+    expect(projected.currentHealth).toBe(180)
+    expect(projected.currentHunger).toBeCloseTo(10, 5)
+  })
+
+  it('can unlock additional food uses from follow-up hunger recovery', () => {
+    const projected = projectFutureBarsAdditive(
+      {
+        currentHealth: 30,
+        maxHealth: 100,
+        currentHunger: 3.2,
+        maxHunger: 4,
+        healthHourlyRegen: 10,
+        hungerHourlyRegen: 0.4,
+      },
+      0,
+      8,
+      runtimeConfig,
+    )
+    const baselineFoodRecovery = calculateFoodRecovery(
+      {
+        bread: 4,
+        steak: 4,
+        cookedFish: 4,
+      },
+      3.2,
+      100,
+      runtimeConfig,
+    )
+
+    const foodRecovery = calculateFoodRecovery(
+      {
+        bread: 4,
+        steak: 4,
+        cookedFish: 4,
+      },
+      projected.currentHunger,
+      projected.maxHealth,
+      runtimeConfig,
+    )
+
+    expect(projected.currentHunger).toBeCloseTo(6.4, 5)
+    expect(baselineFoodRecovery.foodUsesAvailable).toBe(3)
+    expect(foodRecovery.foodUsesAvailable).toBe(6)
   })
 })
 

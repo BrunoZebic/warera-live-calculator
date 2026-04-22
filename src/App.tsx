@@ -108,7 +108,7 @@ function CalculatorPage() {
       {configQuery.isError ? (
         <section className="panel error-panel">
           Live config refresh failed. The app is still usable with cached or
-          fallback values, and manual mode remains available.
+          fallback values.
         </section>
       ) : null}
 

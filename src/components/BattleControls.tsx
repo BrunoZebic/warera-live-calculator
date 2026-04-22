@@ -1,13 +1,15 @@
 import { useState } from 'react'
 
+import { formatProjectionWindow } from '../lib/projectionWindow'
+
 interface BattleControlsProps {
-  battleHours: number
   battleBonusPct: number
-  hoursAhead: number
-  pillBuffDurationHours: number
-  onBattleHoursChange: (value: number) => void
+  followupRecoveryHours: number
   onBattleBonusChange: (value: number) => void
-  onHoursAheadChange: (value: number) => void
+  onFollowupRecoveryHoursChange: (value: number) => void
+  onPrepHoursChange: (value: number) => void
+  pillBuffDurationHours: number
+  prepHours: number
 }
 
 function toNumber(value: string, fallback: number): number {
@@ -16,13 +18,13 @@ function toNumber(value: string, fallback: number): number {
 }
 
 export function BattleControls({
-  battleHours,
   battleBonusPct,
-  hoursAhead,
-  pillBuffDurationHours,
-  onBattleHoursChange,
+  followupRecoveryHours,
   onBattleBonusChange,
-  onHoursAheadChange,
+  onFollowupRecoveryHoursChange,
+  onPrepHoursChange,
+  pillBuffDurationHours,
+  prepHours,
 }: BattleControlsProps) {
   const [battleBonusInput, setBattleBonusInput] = useState(() =>
     battleBonusPct === 0 ? '' : String(battleBonusPct),
@@ -53,33 +55,35 @@ export function BattleControls({
       </label>
 
       <label className="field-label slider-label">
-        <span>Prep time before action: {hoursAhead}h</span>
+        <span>Prep time before action: {prepHours}h</span>
         <input
           className="range-input"
           max="10"
           min="0"
-          onChange={(event) => onHoursAheadChange(Number(event.target.value))}
+          onChange={(event) => onPrepHoursChange(Number(event.target.value))}
           step="1"
           type="range"
-          value={hoursAhead}
+          value={prepHours}
         />
       </label>
 
       <label className="field-label slider-label">
-        <span>Battle window: {battleHours}h</span>
+        <span>Follow-up recovery window: {followupRecoveryHours}h</span>
         <input
           className="range-input"
           max={pillBuffDurationHours}
           min="0"
-          onChange={(event) => onBattleHoursChange(Number(event.target.value))}
+          onChange={(event) =>
+            onFollowupRecoveryHoursChange(Number(event.target.value))
+          }
           step="1"
           type="range"
-          value={battleHours}
+          value={followupRecoveryHours}
         />
       </label>
 
       <div className="battle-window-summary">
-        Combined projection window: {hoursAhead + battleHours}h
+        Projection window: {formatProjectionWindow(prepHours, followupRecoveryHours)}
       </div>
     </div>
   )

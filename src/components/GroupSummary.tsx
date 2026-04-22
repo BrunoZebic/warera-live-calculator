@@ -2,8 +2,7 @@ import {
   calculateSelectionProjection,
   type SelectionProjectionResult,
 } from '../damage/liveProjection'
-import { SpendEstimateControl } from './SpendEstimateControl'
-import { projectFutureBars } from '../damage/projection'
+import { projectFutureBarsAdditive } from '../damage/projection'
 import {
   formatCompactNumber,
   formatPreciseNumber,
@@ -13,26 +12,31 @@ import {
   formatProjectionWindow,
   getCombinedProjectionHours,
 } from '../lib/projectionWindow'
-import { mergeProjectionResourceUsages } from '../pricing/spendEstimate'
 import type { PlayerSelection, RuntimeConfig } from '../types'
 
 interface GroupSummaryProps {
-  battleHours: number
   battleBonusPct: number
   config: RuntimeConfig
-  hoursAhead: number
+  followupRecoveryHours: number
   players: PlayerSelection[]
+  prepHours: number
 }
 
 export function GroupSummary({
-  battleHours,
   battleBonusPct,
   config,
-  hoursAhead,
+  followupRecoveryHours,
   players,
+  prepHours,
 }: GroupSummaryProps) {
-  const totalProjectionHours = getCombinedProjectionHours(hoursAhead, battleHours)
-  const projectionWindow = formatProjectionWindow(hoursAhead, battleHours)
+  const totalProjectionHours = getCombinedProjectionHours(
+    prepHours,
+    followupRecoveryHours,
+  )
+  const projectionWindow = formatProjectionWindow(
+    prepHours,
+    followupRecoveryHours,
+  )
   const currentPlayerResults = players.map((selection) =>
     calculateSelectionProjection({
       battleBonusPct,
@@ -44,7 +48,12 @@ export function GroupSummary({
   const futurePlayerResults = players.map((selection) =>
     calculateSelectionProjection({
       battleBonusPct,
-      barsOverride: projectFutureBars(selection.snapshot, totalProjectionHours, config),
+      barsOverride: projectFutureBarsAdditive(
+        selection.snapshot,
+        prepHours,
+        followupRecoveryHours,
+        config,
+      ),
       config,
       pillAttackBonusPct: getSelectedPillAttackPct(selection, config),
       selection,
@@ -72,7 +81,6 @@ export function GroupSummary({
                 ? `Total damage after ${projectionWindow}`
                 : 'Total damage now'}
             </span>
-            <SpendEstimateControl resourceUsage={primaryProjection.resourceUsage} />
           </div>
           <strong>{formatCompactNumber(primaryProjection.totalDamage)}</strong>
           <small>
@@ -88,9 +96,9 @@ export function GroupSummary({
               </>
             ) : (
               <>
-                <span>{futureProjection.playerCount} players in action</span>
+                <span>{nowProjection.playerCount} players in action</span>
                 <span>
-                  Average damage {formatPreciseNumber(futureProjection.averageDamage)}
+                  Average damage {formatPreciseNumber(nowProjection.averageDamage)}
                 </span>
               </>
             )}
@@ -103,12 +111,12 @@ export function GroupSummary({
             <strong>
               {showFutureAsPrimary
                 ? formatCompactNumber(nowProjection.totalDamage)
-                : futureProjection.playerCount}
+                : nowProjection.playerCount}
             </strong>
             <small>
               {showFutureAsPrimary
                 ? `${formatPreciseNumber(nowProjection.totalAttempts)} estimated attempts`
-                : `Average projected damage ${formatPreciseNumber(futureProjection.averageDamage)}`}
+                : `Average projected damage ${formatPreciseNumber(nowProjection.averageDamage)}`}
             </small>
           </div>
 
@@ -144,15 +152,11 @@ function summarizeGroupProjection(
     (sum, result) => sum + result.projection.estimatedAttempts,
     0,
   )
-  const resourceUsage = mergeProjectionResourceUsages(
-    results.map((result) => result.resourceUsage),
-  )
 
   return {
     totalDamage,
     totalAttempts,
     playerCount: results.length,
     averageDamage: results.length > 0 ? totalDamage / results.length : 0,
-    resourceUsage,
   }
 }

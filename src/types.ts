@@ -134,12 +134,6 @@ export interface PlayerSnapshot extends SnapshotBase {
   liveCombatBase: LiveCombatBaseStats
 }
 
-export interface ManualPlayerSnapshot extends SnapshotBase {
-  source: 'manual'
-}
-
-export type CalculatorSnapshot = PlayerSnapshot | ManualPlayerSnapshot
-
 export interface RuntimeConfig {
   cachedAt: number
   configSource: 'live' | 'cache' | 'fallback'
@@ -249,7 +243,7 @@ export interface SearchResult {
 
 export interface PlayerSelection {
   key: string
-  snapshot: CalculatorSnapshot
+  snapshot: PlayerSnapshot
   ammoType: AmmoType
   foodType: FoodType
   foodInventory?: FoodInventory

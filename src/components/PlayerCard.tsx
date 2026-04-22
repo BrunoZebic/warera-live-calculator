@@ -13,7 +13,6 @@ import {
   snapshotToEquipmentRows,
 } from '../lib/equipmentRows'
 import type {
-  AmmoType,
   AttackModifierMode,
   FoodInventory,
   PlayerSelection,
@@ -21,11 +20,9 @@ import type {
 } from '../types'
 
 interface PlayerCardProps {
-  battleHours: number
   battleBonusPct: number
   config: RuntimeConfig
-  hoursAhead: number
-  onAmmoChange: (ammoType: AmmoType) => void
+  followupRecoveryHours: number
   onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onEquipmentRowsChange: (rows: NonNullable<PlayerSelection['equipmentRows']>) => void
   onLiveBaseSkillOverridesChange: (
@@ -36,21 +33,21 @@ interface PlayerCardProps {
     weaponAmmoLoadouts: NonNullable<PlayerSelection['weaponAmmoLoadouts']>,
   ) => void
   onRemove?: () => void
+  prepHours: number
   selection: PlayerSelection
 }
 
 export function PlayerCard({
-  battleHours,
   battleBonusPct,
   config,
-  hoursAhead,
-  onAmmoChange,
+  followupRecoveryHours,
   onAttackModifierChange,
   onEquipmentRowsChange,
   onLiveBaseSkillOverridesChange,
   onFoodInventoryChange,
   onWeaponAmmoLoadoutsChange,
   onRemove,
+  prepHours,
   selection,
 }: PlayerCardProps) {
   const [skillEditorOpen, setSkillEditorOpen] = useState(false)
@@ -81,14 +78,6 @@ export function PlayerCard({
       document.removeEventListener('keydown', handleEscape)
     }
   }, [skillEditorOpen])
-
-  useEffect(() => {
-    setSkillEditorOpen(false)
-  }, [selection.key])
-
-  if (selection.snapshot.source !== 'live') {
-    return null
-  }
 
   const snapshot = selection.snapshot
   const selectedPillAttackPct = getSelectedPillAttackPct(selection, config)
@@ -186,13 +175,12 @@ export function PlayerCard({
       />
 
       <ProjectionSummary
-        battleHours={battleHours}
         battleBonusPct={battleBonusPct}
         config={config}
-        hoursAhead={hoursAhead}
+        followupRecoveryHours={followupRecoveryHours}
         onAttackModifierChange={onAttackModifierChange}
-        onAmmoChange={onAmmoChange}
         onFoodInventoryChange={onFoodInventoryChange}
+        prepHours={prepHours}
         selection={selection}
       />
     </article>

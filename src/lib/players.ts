@@ -1,11 +1,10 @@
 import type {
   AttackModifierMode,
-  CalculatorSnapshot,
   FoodInventory,
   FoodType,
   ItemRarity,
-  ManualPlayerSnapshot,
   PlayerSelection,
+  PlayerSnapshot,
   RuntimeConfig,
 } from '../types'
 import {
@@ -37,32 +36,6 @@ export const FOOD_ORDER: Array<keyof FoodInventory> = [
   'bread',
 ]
 
-export function createManualPlayer(
-  config: RuntimeConfig,
-  label = 'Manual player',
-): ManualPlayerSnapshot {
-  return {
-    source: 'manual',
-    id: `manual-${crypto.randomUUID()}`,
-    username: label,
-    currentHealth: config.defaultBars.maxHealth,
-    maxHealth: config.defaultBars.maxHealth,
-    currentHunger: config.defaultBars.maxHunger,
-    maxHunger: config.defaultBars.maxHunger,
-    healthHourlyRegen: config.defaultBars.healthHourlyRegen,
-    hungerHourlyRegen: config.defaultBars.hungerHourlyRegen,
-    attackPreAmmo: config.defaultCombat.attackPreAmmo,
-    detectedAttackModifierPct: 0,
-    precisionPct: config.defaultCombat.precisionPct,
-    criticalChancePct: config.defaultCombat.criticalChancePct,
-    critDamagePct: config.defaultCombat.critDamagePct,
-    armorPct: config.defaultCombat.armorPct,
-    dodgePct: config.defaultCombat.dodgePct,
-    currentAmmoType: 'none',
-    weaponCode: '',
-  }
-}
-
 export function createEmptyFoodInventory(): FoodInventory {
   return {
     bread: 0,
@@ -71,7 +44,7 @@ export function createEmptyFoodInventory(): FoodInventory {
   }
 }
 
-export function createSelection(snapshot: CalculatorSnapshot): PlayerSelection {
+export function createSelection(snapshot: PlayerSnapshot): PlayerSelection {
   return {
     key: `${snapshot.source}-${snapshot.id}`,
     snapshot,
@@ -84,12 +57,30 @@ export function createSelection(snapshot: CalculatorSnapshot): PlayerSelection {
         : snapshot.detectedAttackModifierPct < 0
           ? 'debuff'
           : 'none',
-    equipmentRows:
-      snapshot.source === 'live' ? snapshotToEquipmentRows(snapshot) : undefined,
-    weaponAmmoLoadouts:
-      snapshot.source === 'live'
-        ? snapshotToWeaponAmmoLoadouts(snapshot)
-        : undefined,
+    equipmentRows: snapshotToEquipmentRows(snapshot),
+    weaponAmmoLoadouts: snapshotToWeaponAmmoLoadouts(snapshot),
+  }
+}
+
+export function mergeSelectionWithSnapshot(
+  current: PlayerSelection,
+  snapshot: PlayerSnapshot,
+): PlayerSelection {
+  const nextSelection = createSelection(snapshot)
+
+  if (current.snapshot.id !== snapshot.id) {
+    return nextSelection
+  }
+
+  return {
+    ...nextSelection,
+    ammoType: current.ammoType,
+    foodType: current.foodType,
+    foodInventory: current.foodInventory,
+    attackModifier: current.attackModifier,
+    liveBaseSkillOverrides: current.liveBaseSkillOverrides,
+    equipmentRows: current.equipmentRows,
+    weaponAmmoLoadouts: current.weaponAmmoLoadouts,
   }
 }
 
@@ -210,16 +201,6 @@ export function getItemRarity(code: string, config: RuntimeConfig): ItemRarity {
   }
 
   return 'unknown'
-}
-
-export function updateSnapshot(
-  snapshot: CalculatorSnapshot,
-  patch: Partial<CalculatorSnapshot>,
-): CalculatorSnapshot {
-  return {
-    ...snapshot,
-    ...patch,
-  } as CalculatorSnapshot
 }
 
 export function formatCompactNumber(value: number): string {

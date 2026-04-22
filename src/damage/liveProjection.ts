@@ -204,7 +204,7 @@ function buildActiveEquipmentFromTrackers(
 }
 
 function buildBars(
-  snapshot: PlayerSelection['snapshot'],
+  snapshot: PlayerSnapshot,
   barsOverride?: Partial<PlayerBars>,
 ): PlayerBars {
   return {
@@ -526,11 +526,7 @@ export function calculateSelectionProjection(
   const resourceUsage = createEmptyResourceUsage(selection)
   resourceUsage.foodUsed = foodRecovery.consumedFood
 
-  if (
-    selection.snapshot.source !== 'live' ||
-    !selection.equipmentRows ||
-    selection.equipmentRows.length === 0
-  ) {
+  if (!selection.equipmentRows || selection.equipmentRows.length === 0) {
     const openingProjection = calculatePlayerProjection(openingInput)
 
     if (selection.ammoType !== 'none') {

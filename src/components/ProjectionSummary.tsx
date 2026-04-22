@@ -5,6 +5,7 @@ import {
 } from '../damage/liveProjection'
 import { projectFutureBarsAdditive } from '../damage/projection'
 import { FoodInventoryEditor } from './FoodInventoryEditor'
+import { SpendEstimateControl } from './SpendEstimateControl'
 import {
   createEmptyFoodInventory,
   formatCompactNumber,
@@ -79,6 +80,9 @@ export function ProjectionSummary({
   const futureProjection = futureResult.projection
   const openingProjection = currentResult.openingProjection
   const showFutureAsPrimary = totalProjectionHours > 0
+  const primaryResult = showFutureAsPrimary
+    ? futureResult
+    : currentResult
   const primaryProjection = showFutureAsPrimary
     ? futureProjection
     : currentProjection
@@ -106,6 +110,10 @@ export function ProjectionSummary({
         <div className="damage-hero-card">
           <div className="damage-hero-header">
             <span>{primaryLabel}</span>
+            <SpendEstimateControl
+              damageTotal={primaryProjection.totalDamage}
+              resourceUsage={primaryResult.resourceUsage}
+            />
           </div>
           <strong>{formatCompactNumber(primaryProjection.totalDamage)}</strong>
           <small>

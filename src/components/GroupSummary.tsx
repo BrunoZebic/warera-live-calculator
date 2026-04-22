@@ -9,10 +9,12 @@ import {
   formatPreciseNumber,
   getSelectedPillAttackPct,
 } from '../lib/players'
+import { mergeProjectionResourceUsages } from '../pricing/spendEstimate'
 import {
   formatProjectionWindow,
   getCombinedProjectionHours,
 } from '../lib/projectionWindow'
+import { SpendEstimateControl } from './SpendEstimateControl'
 import type { PlayerSelection, RuntimeConfig } from '../types'
 
 interface GroupSummaryProps {
@@ -63,9 +65,15 @@ export function GroupSummary({
   const nowProjection = summarizeGroupProjection(currentPlayerResults)
   const futureProjection = summarizeGroupProjection(futurePlayerResults)
   const showFutureAsPrimary = totalProjectionHours > 0
+  const primaryPlayerResults = showFutureAsPrimary
+    ? futurePlayerResults
+    : currentPlayerResults
   const primaryProjection = showFutureAsPrimary
     ? futureProjection
     : nowProjection
+  const primaryResourceUsage = mergeProjectionResourceUsages(
+    primaryPlayerResults.map((result) => result.resourceUsage),
+  )
 
   return (
     <section className="panel group-summary">
@@ -82,6 +90,10 @@ export function GroupSummary({
                 ? `Total damage after ${projectionWindow}`
                 : 'Total damage now'}
             </span>
+            <SpendEstimateControl
+              damageTotal={primaryProjection.totalDamage}
+              resourceUsage={primaryResourceUsage}
+            />
           </div>
           <strong>{formatCompactNumber(primaryProjection.totalDamage)}</strong>
           <small>

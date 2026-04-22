@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import { getPricingQuote } from '../api/pricing'
+import { getPricingQuote, PricingApiError } from '../api/pricing'
 import { formatPreciseNumber } from '../lib/players'
 import {
   buildPricingQuoteRequest,
@@ -10,6 +10,7 @@ import {
 import type { ProjectionResourceUsage } from '../types'
 
 interface SpendEstimateControlProps {
+  damageTotal: number
   resourceUsage: ProjectionResourceUsage
 }
 
@@ -53,7 +54,20 @@ function CoinIcon() {
   )
 }
 
+function getPricingErrorMessage(error: unknown) {
+  if (error instanceof PricingApiError && error.status === 404) {
+    return 'Pricing API not available here. In plain npm run dev, use a deployed Vercel runtime for live pricing checks.'
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Unknown error.'
+}
+
 export function SpendEstimateControl({
+  damageTotal,
   resourceUsage,
 }: SpendEstimateControlProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -69,9 +83,10 @@ export function SpendEstimateControl({
   })
 
   const spendEstimate = pricingQuery.data
-    ? calculateSpendEstimate(resourceUsage, pricingQuery.data)
+    ? calculateSpendEstimate(resourceUsage, pricingQuery.data, damageTotal)
     : {
         ammoSpent: 0,
+        costPer1kDamage: damageTotal > 0 ? 0 : null,
         equipmentSpent: 0,
         foodSpent: 0,
         isPartial: false,
@@ -97,18 +112,28 @@ export function SpendEstimateControl({
             <span>Loading live prices...</span>
           ) : pricingQuery.isError ? (
             <span>
-              Gold estimate failed:{' '}
-              {pricingQuery.error instanceof Error
-                ? pricingQuery.error.message
-                : 'Unknown error.'}
+              Gold estimate failed: {getPricingErrorMessage(pricingQuery.error)}
             </span>
           ) : (
             <>
-              <span>Estimated gold spent</span>
-              <strong>
-                {spendEstimate.isPartial ? '>=' : ''}
-                {formatPreciseNumber(spendEstimate.totalSpent)}
-              </strong>
+              <div className="spend-estimate-metric-grid">
+                <div className="spend-estimate-metric">
+                  <span>Estimated gold spent</span>
+                  <strong>
+                    {spendEstimate.isPartial ? '>=' : ''}
+                    {formatPreciseNumber(spendEstimate.totalSpent)}
+                  </strong>
+                </div>
+
+                <div className="spend-estimate-metric">
+                  <span>Gold / 1k dmg</span>
+                  <strong className="spend-estimate-metric-secondary">
+                    {spendEstimate.costPer1kDamage === null
+                      ? '--'
+                      : `${spendEstimate.isPartial ? '>=' : ''}${formatPreciseNumber(spendEstimate.costPer1kDamage)}`}
+                  </strong>
+                </div>
+              </div>
               <small>
                 Ammo {formatPreciseNumber(spendEstimate.ammoSpent)} | Food{' '}
                 {formatPreciseNumber(spendEstimate.foodSpent)} | Pill{' '}

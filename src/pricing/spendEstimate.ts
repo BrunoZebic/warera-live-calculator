@@ -40,6 +40,7 @@ function mergeEquipmentUsage(
 
 export interface SpendEstimate {
   ammoSpent: number
+  costPer1kDamage: number | null
   equipmentSpent: number
   foodSpent: number
   isPartial: boolean
@@ -85,6 +86,7 @@ export function buildPricingQuoteRequest(
 export function calculateSpendEstimate(
   resourceUsage: ProjectionResourceUsage,
   pricingQuote: PricingQuoteResponse,
+  damageTotal: number,
 ): SpendEstimate {
   const ammoSpent =
     resourceUsage.ammoUsed.lightAmmo * pricingQuote.consumablePrices.lightAmmo +
@@ -111,13 +113,17 @@ export function calculateSpendEstimate(
       (equipmentItem.durabilityUsed / Math.max(equipmentItem.maxState, 1))
   }
 
+  const totalSpent = ammoSpent + foodSpent + pillSpent + equipmentSpent
+
   return {
     ammoSpent,
+    costPer1kDamage:
+      damageTotal > 0 ? totalSpent / (damageTotal / 1000) : null,
     equipmentSpent,
     foodSpent,
     isPartial: unpricedEquipmentCount > 0,
     pillSpent,
-    totalSpent: ammoSpent + foodSpent + pillSpent + equipmentSpent,
+    totalSpent,
     unpricedEquipmentCount,
   }
 }

@@ -97,16 +97,39 @@ describe('calculateSpendEstimate', () => {
         ],
       },
       pricingQuote,
+      2_000,
     )
 
     expect(estimate).toMatchObject({
       ammoSpent: 10.8,
+      costPer1kDamage: 37.95,
       foodSpent: 5.1,
       pillSpent: 33,
       equipmentSpent: 27,
       totalSpent: 75.9,
       isPartial: true,
       unpricedEquipmentCount: 1,
+    })
+  })
+
+  it('returns no normalized metric when damage is zero', () => {
+    const estimate = calculateSpendEstimate(
+      {
+        ammoUsed: { lightAmmo: 0, ammo: 1, heavyAmmo: 0 },
+        foodUsed: { bread: 0, steak: 0, cookedFish: 0 },
+        pillCount: 0,
+        equipmentUsed: [],
+      },
+      pricingQuote,
+      0,
+    )
+
+    expect(estimate).toMatchObject({
+      ammoSpent: 0.6,
+      totalSpent: 0.6,
+      costPer1kDamage: null,
+      isPartial: false,
+      unpricedEquipmentCount: 0,
     })
   })
 })

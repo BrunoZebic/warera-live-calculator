@@ -43,9 +43,18 @@ interface CacheEntry<TValue> {
   value: TValue
 }
 
-interface EquipmentPriceSnapshot {
+export interface EquipmentPriceSnapshot {
   generatedAt: string
   salesByCode: Record<string, EquipmentQuoteComparableSale[]>
+}
+
+interface PricingQuoteBuildOptions {
+  apiKey?: string
+  fetchComparableSalesByCodes?: (
+    itemCodes: string[],
+    apiKey: string,
+  ) => Promise<Record<string, EquipmentQuoteComparableSale[]>>
+  persistSnapshot?: (snapshot: EquipmentPriceSnapshot) => void
 }
 
 const memoryCache = new Map<string, CacheEntry<unknown>>()
@@ -130,6 +139,16 @@ async function writeBlobCache<TValue>(
   }
 }
 
+function createCacheEntry<TValue>(
+  value: TValue,
+  ttlMs: number,
+): CacheEntry<TValue> {
+  return {
+    expiresAt: Date.now() + ttlMs,
+    value,
+  }
+}
+
 async function readCachedValue<TValue>(
   key: string,
   path: string,
@@ -156,13 +175,22 @@ async function writeCachedValue<TValue>(
   value: TValue,
   ttlMs: number,
 ) {
-  const entry: CacheEntry<TValue> = {
-    expiresAt: Date.now() + ttlMs,
-    value,
-  }
+  const entry = createCacheEntry(value, ttlMs)
 
   memoryCache.set(key, entry)
   await writeBlobCache(path, entry)
+}
+
+function writeCachedValueInBackground<TValue>(
+  key: string,
+  path: string,
+  value: TValue,
+  ttlMs: number,
+) {
+  const entry = createCacheEntry(value, ttlMs)
+
+  memoryCache.set(key, entry)
+  void writeBlobCache(path, entry)
 }
 
 function mapConsumablePrices(
@@ -301,6 +329,42 @@ function mapComparableSales(
   })
 }
 
+async function fetchComparableSalesForItemCode(
+  client: ReturnType<typeof createWarEraApiClient>,
+  itemCode: string,
+) {
+  try {
+    const response = (await client.transaction.getPaginatedTransactions({
+      itemCode,
+      limit: 30,
+      transactionType: 'itemMarket',
+    })) as TransactionGetPaginatedTransactionsResponse
+
+    return [itemCode, mapComparableSales(response, itemCode)] as const
+  } catch (error) {
+    console.warn(`Refreshing equipment snapshot failed for ${itemCode}.`, error)
+    return [itemCode, []] as const
+  }
+}
+
+async function fetchComparableSalesByCodes(
+  itemCodes: string[],
+  apiKey: string,
+): Promise<Record<string, EquipmentQuoteComparableSale[]>> {
+  if (itemCodes.length === 0) {
+    return {}
+  }
+
+  const client = createWarEraApiClient(apiKey)
+  const entries = await mapInBatches(
+    [...new Set(itemCodes)],
+    EQUIPMENT_PRICE_REFRESH_BATCH_SIZE,
+    (itemCode) => fetchComparableSalesForItemCode(client, itemCode),
+  )
+
+  return Object.fromEntries(entries)
+}
+
 async function buildEquipmentPriceSnapshot(
   gameConfig: GameConfigGetGameConfigResponse,
 ): Promise<EquipmentPriceSnapshot> {
@@ -313,29 +377,12 @@ async function buildEquipmentPriceSnapshot(
     }
   }
 
-  const client = createWarEraApiClient(apiKey)
-  const entries = await mapInBatches(
-    getEquipmentItemCodes(gameConfig),
-    EQUIPMENT_PRICE_REFRESH_BATCH_SIZE,
-    async (itemCode) => {
-      try {
-        const response = (await client.transaction.getPaginatedTransactions({
-          itemCode,
-          limit: 30,
-          transactionType: 'itemMarket',
-        })) as TransactionGetPaginatedTransactionsResponse
-
-        return [itemCode, mapComparableSales(response, itemCode)] as const
-      } catch (error) {
-        console.warn(`Refreshing equipment snapshot failed for ${itemCode}.`, error)
-        return [itemCode, []] as const
-      }
-    },
-  )
-
   return {
     generatedAt: new Date().toISOString(),
-    salesByCode: Object.fromEntries(entries),
+    salesByCode: await fetchComparableSalesByCodes(
+      getEquipmentItemCodes(gameConfig),
+      apiKey,
+    ),
   }
 }
 
@@ -364,6 +411,116 @@ function createUnavailableEquipmentQuote(): EquipmentPriceQuote {
   }
 }
 
+function quoteEquipmentItem(
+  item: PricingQuoteRequest['equipmentItems'][number],
+  gameConfig: GameConfigGetGameConfigResponse,
+  equipmentSnapshot: EquipmentPriceSnapshot,
+): EquipmentPriceQuote {
+  const sales = equipmentSnapshot.salesByCode[item.code] ?? []
+
+  return sales.length > 0
+    ? quoteEquipmentFullPrice(
+        item,
+        sales,
+        getItemStatRanges(gameConfig, item.code),
+      )
+    : createUnavailableEquipmentQuote()
+}
+
+function buildEquipmentQuotes(
+  equipmentItems: PricingQuoteRequest['equipmentItems'],
+  gameConfig: GameConfigGetGameConfigResponse,
+  equipmentSnapshot: EquipmentPriceSnapshot,
+): PricingQuoteResponse['equipmentQuotes'] {
+  return equipmentItems.reduce<PricingQuoteResponse['equipmentQuotes']>(
+    (accumulator, item) => {
+      accumulator[item.itemId] = {
+        ...quoteEquipmentItem(item, gameConfig, equipmentSnapshot),
+        code: item.code,
+        itemId: item.itemId,
+      }
+
+      return accumulator
+    },
+    {},
+  )
+}
+
+function mergeEquipmentSalesIntoSnapshot(
+  equipmentSnapshot: EquipmentPriceSnapshot,
+  nextSalesByCode: Record<string, EquipmentQuoteComparableSale[]>,
+): EquipmentPriceSnapshot {
+  const mergedEntries = Object.entries(nextSalesByCode).filter(
+    ([, sales]) => sales.length > 0,
+  )
+
+  if (mergedEntries.length === 0) {
+    return equipmentSnapshot
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    salesByCode: {
+      ...equipmentSnapshot.salesByCode,
+      ...Object.fromEntries(mergedEntries),
+    },
+  }
+}
+
+export async function buildPricingQuoteResponse(
+  request: PricingQuoteRequest,
+  consumablePrices: ConsumablePriceTable,
+  gameConfig: GameConfigGetGameConfigResponse,
+  equipmentSnapshot: EquipmentPriceSnapshot,
+  options: PricingQuoteBuildOptions = {},
+): Promise<PricingQuoteResponse> {
+  const apiKey = options.apiKey ?? process.env.WARERA_API_KEY
+  const fetchSalesByCode =
+    options.fetchComparableSalesByCodes ?? fetchComparableSalesByCodes
+  const persistSnapshot = options.persistSnapshot ?? (() => {})
+  let activeSnapshot = equipmentSnapshot
+  const equipmentQuotes = buildEquipmentQuotes(
+    request.equipmentItems,
+    gameConfig,
+    activeSnapshot,
+  )
+  const unavailableItems = request.equipmentItems.filter(
+    (item) => equipmentQuotes[item.itemId]?.unavailable,
+  )
+
+  if (unavailableItems.length > 0 && apiKey) {
+    const liveSalesByCode = await fetchSalesByCode(
+      unavailableItems.map((item) => item.code),
+      apiKey,
+    )
+    const mergedSnapshot = mergeEquipmentSalesIntoSnapshot(
+      activeSnapshot,
+      liveSalesByCode,
+    )
+
+    if (mergedSnapshot !== activeSnapshot) {
+      activeSnapshot = mergedSnapshot
+      persistSnapshot(activeSnapshot)
+
+      const fallbackQuotes = buildEquipmentQuotes(
+        unavailableItems,
+        gameConfig,
+        activeSnapshot,
+      )
+
+      for (const item of unavailableItems) {
+        equipmentQuotes[item.itemId] = fallbackQuotes[item.itemId]
+      }
+    }
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    consumablePrices,
+    equipmentQuotes,
+  }
+}
+
 export async function refreshEquipmentPriceSnapshot(
   gameConfigInput?: GameConfigGetGameConfigResponse,
 ) {
@@ -388,37 +545,20 @@ export async function getPricingQuote(
     getGameConfig(),
   ])
   const equipmentSnapshot = await getEquipmentPriceSnapshot(gameConfig)
-  const quotesByItemId = new Map<string, EquipmentPriceQuote>()
 
-  const equipmentQuotes = request.equipmentItems.reduce<
-    PricingQuoteResponse['equipmentQuotes']
-  >((accumulator, item) => {
-    let quote = quotesByItemId.get(item.itemId)
-
-    if (!quote) {
-      const sales = equipmentSnapshot.salesByCode[item.code] ?? []
-      quote =
-        sales.length > 0
-          ? quoteEquipmentFullPrice(
-              item,
-              sales,
-              getItemStatRanges(gameConfig, item.code),
-            )
-          : createUnavailableEquipmentQuote()
-      quotesByItemId.set(item.itemId, quote)
-    }
-
-    accumulator[item.itemId] = {
-      ...quote,
-      code: item.code,
-      itemId: item.itemId,
-    }
-    return accumulator
-  }, {})
-
-  return {
-    generatedAt: new Date().toISOString(),
+  return buildPricingQuoteResponse(
+    request,
     consumablePrices,
-    equipmentQuotes,
-  }
+    gameConfig,
+    equipmentSnapshot,
+    {
+      persistSnapshot: (nextSnapshot) =>
+        writeCachedValueInBackground(
+          'equipment-price-snapshot',
+          EQUIPMENT_PRICE_SNAPSHOT_CACHE_PATH,
+          nextSnapshot,
+          EQUIPMENT_PRICE_SNAPSHOT_TTL_MS,
+        ),
+    },
+  )
 }

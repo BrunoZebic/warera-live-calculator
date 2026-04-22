@@ -35,7 +35,7 @@ export function BattleControls({
       <label className="field-label">
         <span>Manual battle bonus %</span>
         <input
-          className="text-input"
+          className="text-input battle-bonus-input"
           onChange={(event) => {
             const nextValue = event.target.value
             setBattleBonusInput(nextValue)
@@ -57,30 +57,42 @@ export function BattleControls({
       <div className="battle-controls-time-stack">
         <label className="field-label slider-label">
           <span>Prep time before action: {prepHours}h</span>
-          <input
-            className="range-input"
-            max="10"
-            min="0"
-            onChange={(event) => onPrepHoursChange(Number(event.target.value))}
-            step="1"
-            type="range"
-            value={prepHours}
-          />
+          <div className="range-input-shell">
+            <input
+              className="range-input"
+              max="10"
+              min="0"
+              onChange={(event) => onPrepHoursChange(Number(event.target.value))}
+              step="1"
+              type="range"
+              value={prepHours}
+            />
+            <div className="range-input-scale">
+              <span>0h</span>
+              <span>10h</span>
+            </div>
+          </div>
         </label>
 
         <label className="field-label slider-label">
           <span>Follow-up recovery window: {followupRecoveryHours}h</span>
-          <input
-            className="range-input"
-            max={pillBuffDurationHours}
-            min="0"
-            onChange={(event) =>
-              onFollowupRecoveryHoursChange(Number(event.target.value))
-            }
-            step="1"
-            type="range"
-            value={followupRecoveryHours}
-          />
+          <div className="range-input-shell">
+            <input
+              className="range-input"
+              max={pillBuffDurationHours}
+              min="0"
+              onChange={(event) =>
+                onFollowupRecoveryHoursChange(Number(event.target.value))
+              }
+              step="1"
+              type="range"
+              value={followupRecoveryHours}
+            />
+            <div className="range-input-scale">
+              <span>0h</span>
+              <span>{pillBuffDurationHours}h</span>
+            </div>
+          </div>
         </label>
       </div>
 

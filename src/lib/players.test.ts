@@ -6,9 +6,32 @@ import {
 } from './players'
 import type {
   EquipmentRow,
+  LiveSkillMap,
   PlayerSelection,
   PlayerSnapshot,
 } from '../types'
+
+function makeLiveSkills(
+  overrides: Partial<LiveSkillMap> = {},
+): LiveSkillMap {
+  return {
+    attack: { level: 0, value: 100 },
+    precision: { level: 0, value: 50 },
+    criticalChance: { level: 0, value: 10 },
+    criticalDamages: { level: 0, value: 100 },
+    armor: { level: 0, value: 0 },
+    dodge: { level: 0, value: 0 },
+    health: { level: 0, value: 100 },
+    hunger: { level: 0, value: 4 },
+    energy: { level: 0, value: 10 },
+    entrepreneurship: { level: 0, value: 0 },
+    production: { level: 0, value: 0 },
+    companies: { level: 0, value: 0 },
+    management: { level: 0, value: 0 },
+    lootChance: { level: 0, value: 0 },
+    ...overrides,
+  }
+}
 
 function makeSnapshot(
   overrides: Partial<PlayerSnapshot> = {},
@@ -17,6 +40,10 @@ function makeSnapshot(
     source: 'live',
     id: 'player-1',
     username: 'player-1',
+    level: 1,
+    totalSkillPoints: 4,
+    availableSkillPoints: 4,
+    spentSkillPoints: 0,
     currentHealth: 25,
     maxHealth: 100,
     currentHunger: 2,
@@ -43,6 +70,7 @@ function makeSnapshot(
         skills: { attack: 80, criticalChance: 8 },
       },
     ],
+    liveSkills: makeLiveSkills(),
     liveCombatBase: {
       attackBaseValue: 100,
       attackPercentMultiplier: 1,
@@ -81,8 +109,10 @@ describe('mergeSelectionWithSnapshot', () => {
         cookedFish: 3,
       },
       foodType: 'bread',
-      liveBaseSkillOverrides: {
-        attackBaseValue: 125,
+      liveSkillOverrides: {
+        skillLevels: {
+          attack: 25,
+        },
       },
       equipmentRows: editedRows,
       weaponAmmoLoadouts: [
@@ -114,8 +144,10 @@ describe('mergeSelectionWithSnapshot', () => {
       cookedFish: 3,
     })
     expect(merged.foodType).toBe('bread')
-    expect(merged.liveBaseSkillOverrides).toEqual({
-      attackBaseValue: 125,
+    expect(merged.liveSkillOverrides).toEqual({
+      skillLevels: {
+        attack: 25,
+      },
     })
     expect(merged.equipmentRows).toBe(editedRows)
     expect(merged.weaponAmmoLoadouts).toEqual([
@@ -134,8 +166,10 @@ describe('mergeSelectionWithSnapshot', () => {
       {
         ...current,
         attackModifier: 'buff',
-        liveBaseSkillOverrides: {
-          attackBaseValue: 130,
+        liveSkillOverrides: {
+          skillLevels: {
+            attack: 30,
+          },
         },
       },
       makeSnapshot({
@@ -146,6 +180,6 @@ describe('mergeSelectionWithSnapshot', () => {
 
     expect(merged.snapshot.id).toBe('player-2')
     expect(merged.attackModifier).toBe('none')
-    expect(merged.liveBaseSkillOverrides).toBeUndefined()
+    expect(merged.liveSkillOverrides).toBeUndefined()
   })
 })

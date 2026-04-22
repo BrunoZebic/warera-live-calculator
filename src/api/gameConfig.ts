@@ -6,6 +6,8 @@ import type {
   EquipmentStatKey,
   EquipmentStatRange,
   ItemRarity,
+  LiveSkillKey,
+  LiveSkillLevelValuesBySkill,
   RuntimeConfig,
 } from '../types'
 import { api } from './client'
@@ -21,6 +23,25 @@ function createEmptyEquipmentMetaBySlot(): Record<EquipmentSlot, EquipmentItemMe
     pants: [],
     boots: [],
     gloves: [],
+  }
+}
+
+function createEmptySkillLevelValuesBySkill(): LiveSkillLevelValuesBySkill {
+  return {
+    attack: {},
+    precision: {},
+    criticalChance: {},
+    criticalDamages: {},
+    armor: {},
+    dodge: {},
+    health: {},
+    hunger: {},
+    energy: {},
+    entrepreneurship: {},
+    production: {},
+    companies: {},
+    management: {},
+    lootChance: {},
   }
 }
 
@@ -58,6 +79,7 @@ const FALLBACK_RUNTIME_CONFIG: RuntimeConfig = {
     armorPct: 0,
     dodgePct: 0,
   },
+  skillLevelValues: createEmptySkillLevelValuesBySkill(),
 }
 
 type SkillLevelMap = Record<string, { value: number }>
@@ -102,6 +124,40 @@ function readFoodRestore(item: GameConfigItemLike | undefined, fallback: number)
     item?.flatStats?.healthRegen ??
     fallback
   )
+}
+
+function buildSkillLevelValues(
+  config: GameConfigGetGameConfigResponse,
+): LiveSkillLevelValuesBySkill {
+  const keys: LiveSkillKey[] = [
+    'attack',
+    'precision',
+    'criticalChance',
+    'criticalDamages',
+    'armor',
+    'dodge',
+    'health',
+    'hunger',
+    'energy',
+    'entrepreneurship',
+    'production',
+    'companies',
+    'management',
+    'lootChance',
+  ]
+
+  return keys.reduce<LiveSkillLevelValuesBySkill>((accumulator, key) => {
+    const levels =
+      (config.skills[key] as unknown as GameConfigSkillLike | undefined)?.levels ??
+      {}
+    accumulator[key] = Object.entries(levels as SkillLevelMap).reduce<
+      Record<string, number>
+    >((levelAccumulator, [level, entry]) => {
+      levelAccumulator[level] = entry.value
+      return levelAccumulator
+    }, {})
+    return accumulator
+  }, createEmptySkillLevelValuesBySkill())
 }
 
 function normalizeRarity(rarity?: string): ItemRarity {
@@ -187,6 +243,7 @@ function toRuntimeConfig(
   const defaultMaxHealth = readLevelValue(config.skills.health.levels, '0')
   const defaultMaxHunger = readLevelValue(config.skills.hunger.levels, '0')
   const equipmentMetaBySlot = buildEquipmentMetaBySlot(items)
+  const skillLevelValues = buildSkillLevelValues(config)
   const itemMetaByCode = Object.values(items).reduce<
     RuntimeConfig['itemMetaByCode']
   >((accumulator, item) => {
@@ -257,6 +314,7 @@ function toRuntimeConfig(
       armorPct: readLevelValue(armorSkill.levels, '0'),
       dodgePct: readLevelValue(dodgeSkill.levels, '0'),
     },
+    skillLevelValues,
   }
 }
 
@@ -305,6 +363,10 @@ function readCachedConfig(): RuntimeConfig | null {
       defaultCombat: {
         ...FALLBACK_RUNTIME_CONFIG.defaultCombat,
         ...parsed.defaultCombat,
+      },
+      skillLevelValues: {
+        ...createEmptySkillLevelValuesBySkill(),
+        ...parsed.skillLevelValues,
       },
     }
     if (Date.now() - normalized.cachedAt > CACHE_TTL_MS) {

@@ -46,6 +46,22 @@ const runtimeConfig: RuntimeConfig = {
     armorPct: 0,
     dodgePct: 0,
   },
+  skillLevelValues: {
+    attack: {},
+    precision: {},
+    criticalChance: {},
+    criticalDamages: {},
+    armor: {},
+    dodge: {},
+    health: {},
+    hunger: {},
+    energy: {},
+    entrepreneurship: {},
+    production: {},
+    companies: {},
+    management: {},
+    lootChance: {},
+  },
 }
 
 function makeInput(overrides: Partial<CalcInput> = {}): CalcInput {

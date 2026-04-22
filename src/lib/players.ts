@@ -78,7 +78,7 @@ export function mergeSelectionWithSnapshot(
     foodType: current.foodType,
     foodInventory: current.foodInventory,
     attackModifier: current.attackModifier,
-    liveBaseSkillOverrides: current.liveBaseSkillOverrides,
+    liveSkillOverrides: current.liveSkillOverrides,
     equipmentRows: current.equipmentRows,
     weaponAmmoLoadouts: current.weaponAmmoLoadouts,
   }

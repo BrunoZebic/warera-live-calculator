@@ -11,6 +11,7 @@ import type {
   EquipmentCell,
   EquipmentItemMeta,
   EquipmentRow,
+  LiveSkillMap,
   PlayerSelection,
   PlayerSnapshot,
   RuntimeConfig,
@@ -57,6 +58,22 @@ const runtimeConfig: RuntimeConfig = {
     critDamagePct: 100,
     armorPct: 0,
     dodgePct: 0,
+  },
+  skillLevelValues: {
+    attack: { 0: 100, 20: 120 },
+    precision: { 0: 50, 20: 70 },
+    criticalChance: { 0: 10 },
+    criticalDamages: { 0: 100 },
+    armor: { 0: 0 },
+    dodge: { 0: 0 },
+    health: { 0: 100 },
+    hunger: { 0: 4 },
+    energy: { 0: 10 },
+    entrepreneurship: { 0: 0 },
+    production: { 0: 0 },
+    companies: { 0: 0 },
+    management: { 0: 0 },
+    lootChance: { 0: 0 },
   },
 }
 
@@ -111,6 +128,28 @@ function makeRow(overrides: Partial<EquipmentRow>): EquipmentRow {
   }
 }
 
+function makeLiveSkills(
+  overrides: Partial<LiveSkillMap> = {},
+): LiveSkillMap {
+  return {
+    attack: { level: 0, value: 100 },
+    precision: { level: 0, value: 50 },
+    criticalChance: { level: 0, value: 10 },
+    criticalDamages: { level: 0, value: 100 },
+    armor: { level: 0, value: 0 },
+    dodge: { level: 0, value: 0 },
+    health: { level: 0, value: 100 },
+    hunger: { level: 0, value: 4 },
+    energy: { level: 0, value: 10 },
+    entrepreneurship: { level: 0, value: 0 },
+    production: { level: 0, value: 0 },
+    companies: { level: 0, value: 0 },
+    management: { level: 0, value: 0 },
+    lootChance: { level: 0, value: 0 },
+    ...overrides,
+  }
+}
+
 function makeLiveSelection(
   rows: EquipmentRow[],
   overrides: Partial<PlayerSnapshot> = {},
@@ -120,6 +159,10 @@ function makeLiveSelection(
     source: 'live',
     id: 'live-player',
     username: 'live-player',
+    level: 1,
+    totalSkillPoints: 4,
+    availableSkillPoints: 4,
+    spentSkillPoints: 0,
     currentHealth: 15,
     maxHealth: 100,
     currentHunger: 0,
@@ -138,6 +181,7 @@ function makeLiveSelection(
     attackTotal: 120,
     liveAmmoPercent: 0,
     equipment: [],
+    liveSkills: makeLiveSkills(),
     liveCombatBase: {
       attackBaseValue: 100,
       attackPercentMultiplier: 1,
@@ -416,9 +460,11 @@ describe('calculateSelectionProjection', () => {
         dodgeBaseValue: 0,
       },
     })
-    selection.liveBaseSkillOverrides = {
-      attackBaseValue: 120,
-      precisionBaseValue: 70,
+    selection.liveSkillOverrides = {
+      skillLevels: {
+        attack: 20,
+        precision: 20,
+      },
     }
 
     const result = calculateSelectionProjection({

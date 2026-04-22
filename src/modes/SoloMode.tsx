@@ -85,9 +85,9 @@ export function SoloMode({ config }: SoloModeProps) {
               current ? { ...current, equipmentRows } : current,
             )
           }
-          onLiveBaseSkillOverridesChange={(liveBaseSkillOverrides) =>
+          onLiveSkillOverridesChange={(liveSkillOverrides) =>
             setLiveSelection((current) =>
-              current ? { ...current, liveBaseSkillOverrides } : current,
+              current ? { ...current, liveSkillOverrides } : current,
             )
           }
           onFoodInventoryChange={(foodInventory: FoodInventory) =>

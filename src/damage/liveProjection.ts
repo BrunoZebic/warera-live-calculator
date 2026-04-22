@@ -8,6 +8,7 @@ import {
   getActiveAmmoType,
   normalizeWeaponAmmoLoadout,
 } from '../lib/equipmentRows'
+import { resolveLiveSkillPlan } from '../lib/liveSkills'
 import { calculateFoodRecovery, createEmptyFoodInventory } from '../lib/players'
 import type {
   AmmoType,
@@ -203,43 +204,56 @@ function buildActiveEquipmentFromTrackers(
   })
 }
 
+function createEmptyActiveEquipment(): ActiveEquipmentMap {
+  return {
+    weapon: null,
+    helmet: null,
+    chest: null,
+    pants: null,
+    boots: null,
+    gloves: null,
+  }
+}
+
 function buildBars(
+  selection: PlayerSelection,
   snapshot: PlayerSnapshot,
+  config: RuntimeConfig,
   barsOverride?: Partial<PlayerBars>,
 ): PlayerBars {
+  const baseBars = resolveLiveSkillPlan(
+    snapshot,
+    selection.liveSkillOverrides,
+    config,
+  ).bars
+
   return {
-    currentHealth: barsOverride?.currentHealth ?? snapshot.currentHealth,
-    maxHealth: barsOverride?.maxHealth ?? snapshot.maxHealth,
-    currentHunger: barsOverride?.currentHunger ?? snapshot.currentHunger,
-    maxHunger: barsOverride?.maxHunger ?? snapshot.maxHunger,
+    currentHealth: barsOverride?.currentHealth ?? baseBars.currentHealth,
+    maxHealth: barsOverride?.maxHealth ?? baseBars.maxHealth,
+    currentHunger: barsOverride?.currentHunger ?? baseBars.currentHunger,
+    maxHunger: barsOverride?.maxHunger ?? baseBars.maxHunger,
     healthHourlyRegen:
-      barsOverride?.healthHourlyRegen ?? snapshot.healthHourlyRegen,
+      barsOverride?.healthHourlyRegen ?? baseBars.healthHourlyRegen,
     hungerHourlyRegen:
-      barsOverride?.hungerHourlyRegen ?? snapshot.hungerHourlyRegen,
+      barsOverride?.hungerHourlyRegen ?? baseBars.hungerHourlyRegen,
   }
 }
 
 function getEffectiveLiveCombatBaseStats(
   selection: PlayerSelection,
   snapshot: PlayerSnapshot,
+  config: RuntimeConfig,
 ) {
-  const overrides = selection.liveBaseSkillOverrides
+  const skillPlan = resolveLiveSkillPlan(snapshot, selection.liveSkillOverrides, config)
 
   return {
     ...snapshot.liveCombatBase,
-    attackBaseValue:
-      overrides?.attackBaseValue ?? snapshot.liveCombatBase.attackBaseValue,
-    precisionBaseValue:
-      overrides?.precisionBaseValue ?? snapshot.liveCombatBase.precisionBaseValue,
-    criticalChanceBaseValue:
-      overrides?.criticalChanceBaseValue ??
-      snapshot.liveCombatBase.criticalChanceBaseValue,
-    critDamageBaseValue:
-      overrides?.critDamageBaseValue ?? snapshot.liveCombatBase.critDamageBaseValue,
-    armorBaseValue:
-      overrides?.armorBaseValue ?? snapshot.liveCombatBase.armorBaseValue,
-    dodgeBaseValue:
-      overrides?.dodgeBaseValue ?? snapshot.liveCombatBase.dodgeBaseValue,
+    attackBaseValue: skillPlan.skillValues.attack,
+    precisionBaseValue: skillPlan.skillValues.precision,
+    criticalChanceBaseValue: skillPlan.skillValues.criticalChance,
+    critDamageBaseValue: skillPlan.skillValues.criticalDamages,
+    armorBaseValue: skillPlan.skillValues.armor,
+    dodgeBaseValue: skillPlan.skillValues.dodge,
   }
 }
 
@@ -250,7 +264,11 @@ function buildLiveCalcInput(
   bars: PlayerBars,
   args: SelectionProjectionArgs,
 ): CalcInputBuildResult {
-  const liveCombatBase = getEffectiveLiveCombatBaseStats(args.selection, snapshot)
+  const liveCombatBase = getEffectiveLiveCombatBaseStats(
+    args.selection,
+    snapshot,
+    args.config,
+  )
   const precisionRaw =
     liveCombatBase.precisionBaseValue +
     getCellSkillValue(activeEquipment.gloves, 'precision')
@@ -348,7 +366,12 @@ function calculateLiveEquipmentProjection(
   const openingAmmoType = weaponAmmoTracker
     ? getActiveAmmoType(weaponAmmoTracker.remainingLoadout)
     : 'none'
-  const openingBars = buildBars(snapshot, args.barsOverride)
+  const openingBars = buildBars(
+    args.selection,
+    snapshot,
+    args.config,
+    args.barsOverride,
+  )
   const openingBuild = buildLiveCalcInput(
     snapshot,
     openingEquipment,
@@ -369,7 +392,12 @@ function calculateLiveEquipmentProjection(
     const activeAmmoType = weaponAmmoTracker
       ? getActiveAmmoType(weaponAmmoTracker.remainingLoadout)
       : 'none'
-    const phaseBars = buildBars(snapshot, args.barsOverride)
+    const phaseBars = buildBars(
+      args.selection,
+      snapshot,
+      args.config,
+      args.barsOverride,
+    )
     const phaseBuild = buildLiveCalcInput(
       snapshot,
       activeEquipment,
@@ -499,35 +527,25 @@ export function calculateSelectionProjection(
   args: SelectionProjectionArgs,
 ): SelectionProjectionResult {
   const { selection } = args
-  const bars = buildBars(selection.snapshot, args.barsOverride)
-  const foodRecovery = calculateFoodRecovery(
-    selection.foodInventory,
-    bars.currentHunger,
-    bars.maxHealth,
-    args.config,
-  )
-  const openingInput: CalcInput = {
-    ...bars,
-    id: selection.snapshot.id,
-    username: selection.snapshot.username,
-    attackPreAmmo: selection.snapshot.attackPreAmmo,
-    detectedAttackModifierPct: selection.snapshot.detectedAttackModifierPct,
-    precisionPct: selection.snapshot.precisionPct,
-    criticalChancePct: selection.snapshot.criticalChancePct,
-    critDamagePct: selection.snapshot.critDamagePct,
-    armorPct: selection.snapshot.armorPct,
-    dodgePct: selection.snapshot.dodgePct,
-    battleBonusPct: args.battleBonusPct,
-    ammoType: selection.ammoType,
-    pillAttackBonusPct: args.pillAttackBonusPct,
-    foodUsesAvailable: foodRecovery.foodUsesAvailable,
-    recoverableHpFromFood: foodRecovery.recoverableHpFromFood,
-  }
-  const resourceUsage = createEmptyResourceUsage(selection)
-  resourceUsage.foodUsed = foodRecovery.consumedFood
 
   if (!selection.equipmentRows || selection.equipmentRows.length === 0) {
+    const openingBars = buildBars(
+      selection,
+      selection.snapshot,
+      args.config,
+      args.barsOverride,
+    )
+    const openingBuild = buildLiveCalcInput(
+      selection.snapshot,
+      createEmptyActiveEquipment(),
+      selection.ammoType,
+      openingBars,
+      args,
+    )
+    const openingInput = openingBuild.input
     const openingProjection = calculatePlayerProjection(openingInput)
+    const resourceUsage = createEmptyResourceUsage(selection)
+    resourceUsage.foodUsed = openingBuild.consumedFood
 
     if (selection.ammoType !== 'none') {
       resourceUsage.ammoUsed[selection.ammoType] = openingProjection.estimatedAttempts
@@ -554,4 +572,15 @@ export function calculateSelectionProjection(
     args,
     selection.snapshot,
   )
+}
+
+export function getEffectiveSelectionBars(
+  selection: PlayerSelection,
+  config: RuntimeConfig,
+): PlayerBars {
+  return resolveLiveSkillPlan(
+    selection.snapshot,
+    selection.liveSkillOverrides,
+    config,
+  ).bars
 }

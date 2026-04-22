@@ -1,7 +1,9 @@
 export interface WareraBarSkill {
   currentBarValue: number
   hourlyBarRegen: number
+  level: number
   total: number
+  value: number
 }
 
 export interface WareraComputedStat {
@@ -28,15 +30,27 @@ export interface WareraUserByIdResponse {
   equipment?: {
     ammo?: string
   }
+  leveling: {
+    availableSkillPoints: number
+    level: number
+    spentSkillPoints: number
+    totalSkillPoints: number
+  }
   skills: {
     health: WareraBarSkill
     hunger: WareraBarSkill
+    energy: WareraBarSkill
+    entrepreneurship: WareraBarSkill
+    production: WareraBarSkill
     attack: WareraComputedAttack
     precision: WareraComputedStat
     criticalChance: WareraComputedStat
     criticalDamages: WareraComputedStat
     armor: WareraComputedStat
     dodge: WareraComputedStat
+    companies: WareraComputedStat
+    management: WareraComputedStat
+    lootChance: WareraComputedStat
   }
   username: string
 }

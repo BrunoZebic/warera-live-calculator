@@ -1,5 +1,6 @@
 import {
   calculateSelectionProjection,
+  getEffectiveSelectionBars,
   type SelectionProjectionResult,
 } from '../damage/liveProjection'
 import { projectFutureBarsAdditive } from '../damage/projection'
@@ -49,7 +50,7 @@ export function GroupSummary({
     calculateSelectionProjection({
       battleBonusPct,
       barsOverride: projectFutureBarsAdditive(
-        selection.snapshot,
+        getEffectiveSelectionBars(selection, config),
         prepHours,
         followupRecoveryHours,
         config,

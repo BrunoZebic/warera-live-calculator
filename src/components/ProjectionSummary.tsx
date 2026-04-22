@@ -1,5 +1,8 @@
 import { MINIMUM_BATTLE_HEALTH } from '../damage/constants'
-import { calculateSelectionProjection } from '../damage/liveProjection'
+import {
+  calculateSelectionProjection,
+  getEffectiveSelectionBars,
+} from '../damage/liveProjection'
 import { projectFutureBarsAdditive } from '../damage/projection'
 import { FoodInventoryEditor } from './FoodInventoryEditor'
 import {
@@ -58,8 +61,9 @@ export function ProjectionSummary({
     prepHours,
     followupRecoveryHours,
   )
+  const currentBars = getEffectiveSelectionBars(selection, config)
   const futureBars = projectFutureBarsAdditive(
-    selection.snapshot,
+    currentBars,
     prepHours,
     followupRecoveryHours,
     config,
@@ -84,7 +88,7 @@ export function ProjectionSummary({
   const foodInventory = selection.foodInventory ?? createEmptyFoodInventory()
   const displayedHunger = showFutureAsPrimary
     ? futureBars.currentHunger
-    : selection.snapshot.currentHunger
+    : currentBars.currentHunger
 
   return (
     <div className="projection-summary">
@@ -187,8 +191,8 @@ export function ProjectionSummary({
           </span>
         ) : null}
         <span>
-          Current bars: {formatPreciseNumber(selection.snapshot.currentHealth)} HP /{' '}
-          {formatPreciseNumber(selection.snapshot.currentHunger)} hunger
+          Current bars: {formatPreciseNumber(currentBars.currentHealth)} HP /{' '}
+          {formatPreciseNumber(currentBars.currentHunger)} hunger
         </span>
         {showFutureAsPrimary ? (
           <span>

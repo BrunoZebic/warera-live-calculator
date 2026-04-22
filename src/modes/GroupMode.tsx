@@ -108,11 +108,11 @@ export function GroupMode({ config }: GroupModeProps) {
                 ),
               )
             }
-            onLiveBaseSkillOverridesChange={(liveBaseSkillOverrides) =>
+            onLiveSkillOverridesChange={(liveSkillOverrides) =>
               setPlayers((current) =>
                 current.map((entry) =>
                   entry.key === selection.key
-                    ? { ...entry, liveBaseSkillOverrides }
+                    ? { ...entry, liveSkillOverrides }
                     : entry,
                 ),
               )

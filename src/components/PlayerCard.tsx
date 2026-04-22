@@ -25,8 +25,8 @@ interface PlayerCardProps {
   followupRecoveryHours: number
   onAttackModifierChange: (attackModifier: AttackModifierMode) => void
   onEquipmentRowsChange: (rows: NonNullable<PlayerSelection['equipmentRows']>) => void
-  onLiveBaseSkillOverridesChange: (
-    liveBaseSkillOverrides: PlayerSelection['liveBaseSkillOverrides'],
+  onLiveSkillOverridesChange: (
+    liveSkillOverrides: PlayerSelection['liveSkillOverrides'],
   ) => void
   onFoodInventoryChange: (foodInventory: FoodInventory) => void
   onWeaponAmmoLoadoutsChange: (
@@ -43,7 +43,7 @@ export function PlayerCard({
   followupRecoveryHours,
   onAttackModifierChange,
   onEquipmentRowsChange,
-  onLiveBaseSkillOverridesChange,
+  onLiveSkillOverridesChange,
   onFoodInventoryChange,
   onWeaponAmmoLoadoutsChange,
   onRemove,
@@ -103,7 +103,7 @@ export function PlayerCard({
           <div className="avatar-editor-anchor" ref={skillEditorRef}>
             <button
               aria-expanded={skillEditorOpen}
-              aria-label={`Edit ${snapshot.username} live base skills`}
+              aria-label={`Edit ${snapshot.username} skills`}
               className="avatar-chip avatar-button avatar-large"
               onClick={() => setSkillEditorOpen((current) => !current)}
               type="button"
@@ -117,11 +117,12 @@ export function PlayerCard({
 
             {skillEditorOpen ? (
               <LiveSkillEditorPopover
-                liveCombatBase={snapshot.liveCombatBase}
-                onChange={onLiveBaseSkillOverridesChange}
+                config={config}
+                onChange={onLiveSkillOverridesChange}
                 onClose={() => setSkillEditorOpen(false)}
-                onReset={() => onLiveBaseSkillOverridesChange(undefined)}
-                overrides={selection.liveBaseSkillOverrides}
+                onReset={() => onLiveSkillOverridesChange(undefined)}
+                overrides={selection.liveSkillOverrides}
+                snapshot={snapshot}
               />
             ) : null}
           </div>

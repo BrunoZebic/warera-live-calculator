@@ -326,7 +326,9 @@
   position: absolute;
   top: calc(100% + 10px);
   left: 0;
-  width: min(360px, calc(100vw - 32px));
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(80vh, 920px);
+  overflow: auto;
   padding: 14px;
   border: 1px solid rgba(255, 56, 56, 0.28);
   border-radius: 14px;
@@ -380,14 +382,126 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-.live-skill-popover-grid {
+.live-skill-budget-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
-.live-skill-popover-input {
-  min-height: 42px;
+.live-skill-budget-card,
+.live-skill-group {
+  border: 1px solid #261013;
+  border-radius: 12px;
+  background: #151517;
+}
+
+.live-skill-budget-card {
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.live-skill-budget-card > span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.live-skill-budget-card > strong,
+.live-skill-row-value strong {
+  color: #ffffff;
+}
+
+.live-skill-budget-card > strong {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.live-skill-budget-card > small,
+.live-skill-group-header small,
+.live-skill-row small,
+.live-skill-popover-actions small {
+  color: var(--text-muted);
+}
+
+.live-skill-budget-card-level .live-skill-stepper {
+  justify-content: flex-start;
+}
+
+.live-skill-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-skill-step-button {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.live-skill-step-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.live-skill-group-stack,
+.live-skill-row-list {
+  display: grid;
+  gap: 10px;
+}
+
+.live-skill-group {
+  padding: 12px;
+}
+
+.live-skill-group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.live-skill-group-header strong,
+.live-skill-row-copy strong {
+  color: #ffffff;
+}
+
+.live-skill-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.15fr) minmax(110px, 0.9fr) auto minmax(132px, 0.95fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(49, 11, 16, 0.2), rgba(21, 21, 23, 0.98));
+}
+
+.live-skill-row-copy,
+.live-skill-row-value,
+.live-skill-row-costs {
+  display: grid;
+  gap: 3px;
+}
+
+.live-skill-row-value strong {
+  font-size: 1.16rem;
+  line-height: 1;
+}
+
+.live-skill-row-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.live-skill-popover-actions {
+  align-items: center;
+  justify-content: space-between;
 }
 
 .identity-row h3,
@@ -1337,6 +1451,19 @@
     flex-direction: column;
   }
 
+  .live-skill-budget-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .live-skill-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .live-skill-row-controls,
+  .live-skill-row-costs {
+    justify-self: end;
+  }
+
   .spend-estimate-shell {
     width: 100%;
     justify-items: stretch;
@@ -1367,10 +1494,16 @@
   }
 
   .live-skill-popover {
-    width: min(100vw - 24px, 320px);
+    width: min(100vw - 24px, 360px);
   }
 
-  .live-skill-popover-grid {
+  .live-skill-budget-grid,
+  .live-skill-row {
     grid-template-columns: 1fr;
+  }
+
+  .live-skill-row-controls,
+  .live-skill-row-costs {
+    justify-self: start;
   }
 }

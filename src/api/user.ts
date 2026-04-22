@@ -7,6 +7,7 @@ import { AMMO_BONUS_PCT } from '../damage/constants'
 import type {
   AmmoType,
   EquipmentSummary,
+  LiveSkillMap,
   PlayerSnapshot,
   SearchResult,
 } from '../types'
@@ -30,6 +31,10 @@ function getEffectiveStat(value: {
   totalAfterSoftCap?: number | null
 }): number {
   return value.totalAfterSoftCap ?? value.total
+}
+
+function getBaseSkillValue(value?: number | null, fallback = 0): number {
+  return value ?? fallback
 }
 
 function buildEquipmentSummary(
@@ -81,6 +86,70 @@ function normalizeSnapshot(
   const attackRawTotal = attackBaseValue + currentWeaponValue + currentOverflowValue
   const attackPercentMultiplier =
     attackRawTotal > 0 ? attackPreAmmo / attackRawTotal : 1
+  const liveSkills: LiveSkillMap = {
+    attack: {
+      level: user.skills.attack.level ?? 0,
+      value: attackBaseValue,
+    },
+    precision: {
+      level: user.skills.precision.level ?? 0,
+      value: getBaseSkillValue(user.skills.precision.value),
+    },
+    criticalChance: {
+      level: user.skills.criticalChance.level ?? 0,
+      value: getBaseSkillValue(user.skills.criticalChance.value),
+    },
+    criticalDamages: {
+      level: user.skills.criticalDamages.level ?? 0,
+      value: getBaseSkillValue(user.skills.criticalDamages.value),
+    },
+    armor: {
+      level: user.skills.armor.level ?? 0,
+      value: getBaseSkillValue(user.skills.armor.value),
+    },
+    dodge: {
+      level: user.skills.dodge.level ?? 0,
+      value: getBaseSkillValue(user.skills.dodge.value),
+    },
+    health: {
+      level: user.skills.health.level,
+      value: getBaseSkillValue(user.skills.health.value, user.skills.health.total),
+    },
+    hunger: {
+      level: user.skills.hunger.level,
+      value: getBaseSkillValue(user.skills.hunger.value, user.skills.hunger.total),
+    },
+    energy: {
+      level: user.skills.energy.level,
+      value: getBaseSkillValue(user.skills.energy.value, user.skills.energy.total),
+    },
+    entrepreneurship: {
+      level: user.skills.entrepreneurship.level,
+      value: getBaseSkillValue(
+        user.skills.entrepreneurship.value,
+        user.skills.entrepreneurship.total,
+      ),
+    },
+    production: {
+      level: user.skills.production.level,
+      value: getBaseSkillValue(
+        user.skills.production.value,
+        user.skills.production.total,
+      ),
+    },
+    companies: {
+      level: user.skills.companies.level ?? 0,
+      value: getBaseSkillValue(user.skills.companies.value, user.skills.companies.total),
+    },
+    management: {
+      level: user.skills.management.level ?? 0,
+      value: getBaseSkillValue(user.skills.management.value, user.skills.management.total),
+    },
+    lootChance: {
+      level: user.skills.lootChance.level ?? 0,
+      value: getBaseSkillValue(user.skills.lootChance.value, user.skills.lootChance.total),
+    },
+  }
 
   const roundTripAttack =
     currentAmmoType === 'none'
@@ -96,6 +165,10 @@ function normalizeSnapshot(
     id: user._id,
     username: user.username,
     avatarUrl: user.avatarUrl,
+    level: user.leveling.level,
+    totalSkillPoints: user.leveling.totalSkillPoints,
+    availableSkillPoints: user.leveling.availableSkillPoints,
+    spentSkillPoints: user.leveling.spentSkillPoints,
     currentHealth: user.skills.health.currentBarValue,
     maxHealth: user.skills.health.total,
     currentHunger: user.skills.hunger.currentBarValue,
@@ -114,6 +187,7 @@ function normalizeSnapshot(
     dodgePct: getEffectiveStat(user.skills.dodge),
     weaponCode: equipment.weapon?.code,
     equipment: buildEquipmentSummary(equipment),
+    liveSkills,
     liveCombatBase: {
       attackBaseValue,
       attackPercentMultiplier,

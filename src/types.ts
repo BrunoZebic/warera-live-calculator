@@ -35,6 +35,22 @@ export type EquipmentStatKey =
 
 export type EquipmentStatValues = Partial<Record<EquipmentStatKey, number>>
 
+export type LiveSkillKey =
+  | 'attack'
+  | 'precision'
+  | 'criticalChance'
+  | 'criticalDamages'
+  | 'armor'
+  | 'dodge'
+  | 'health'
+  | 'hunger'
+  | 'energy'
+  | 'entrepreneurship'
+  | 'production'
+  | 'companies'
+  | 'management'
+  | 'lootChance'
+
 export interface EquipmentStatRange {
   key: EquipmentStatKey
   min: number
@@ -98,13 +114,25 @@ export interface LiveCombatBaseStats {
   dodgeBaseValue: number
 }
 
-export interface LiveBaseSkillOverrides {
-  attackBaseValue?: number
-  precisionBaseValue?: number
-  criticalChanceBaseValue?: number
-  critDamageBaseValue?: number
-  armorBaseValue?: number
-  dodgeBaseValue?: number
+export interface LiveSkillEntry {
+  level: number
+  value: number
+}
+
+export type LiveSkillValueMap = Record<LiveSkillKey, number>
+
+export type LiveSkillLevelMap = Record<LiveSkillKey, number>
+
+export type LiveSkillMap = Record<LiveSkillKey, LiveSkillEntry>
+
+export type LiveSkillLevelValuesBySkill = Record<
+  LiveSkillKey,
+  Record<string, number>
+>
+
+export interface LiveSkillOverrides {
+  playerLevel?: number
+  skillLevels?: Partial<LiveSkillLevelMap>
 }
 
 export interface SnapshotBase extends PlayerBars {
@@ -128,10 +156,15 @@ export interface SnapshotBase extends PlayerBars {
 export interface PlayerSnapshot extends SnapshotBase {
   source: 'live'
   avatarUrl?: string
+  availableSkillPoints: number
   attackTotal: number
+  level: number
   liveAmmoPercent: number
   equipment: EquipmentSummary[]
   liveCombatBase: LiveCombatBaseStats
+  liveSkills: LiveSkillMap
+  spentSkillPoints: number
+  totalSkillPoints: number
 }
 
 export interface RuntimeConfig {
@@ -172,6 +205,7 @@ export interface RuntimeConfig {
     armorPct: number
     dodgePct: number
   }
+  skillLevelValues: LiveSkillLevelValuesBySkill
 }
 
 export interface CalcInput extends PlayerBars {
@@ -248,7 +282,7 @@ export interface PlayerSelection {
   foodType: FoodType
   foodInventory?: FoodInventory
   attackModifier: AttackModifierMode
-  liveBaseSkillOverrides?: LiveBaseSkillOverrides
+  liveSkillOverrides?: LiveSkillOverrides
   equipmentRows?: EquipmentRow[]
   weaponAmmoLoadouts?: WeaponAmmoLoadout[]
 }
